@@ -7,7 +7,7 @@ import time
 def apply_carbon_design():
     st.markdown("""
         <style>
-        /* 1. カーボンファイバー風の背景設定 */
+        /* 背景設定 */
         .stApp {
             background-color: #0e1117;
             background-image: 
@@ -15,21 +15,31 @@ def apply_carbon_design():
                 linear-gradient(-45deg, #161920 25%, transparent 25%), 
                 linear-gradient(45deg, transparent 75%, #161920 75%), 
                 linear-gradient(-45deg, transparent 75%, #161920 75%);
-            background-size: 4px 4px; /* 細かいカーボンパターン */
+            background-size: 4px 4px;
         }
 
-        /* 2. ニュースカードを「コクピットのパネル」風に */
-        div[data-testid="stVerticalBlock"] > div:has(div.stButton) {
-            background: rgba(30, 33, 41, 0.8);
-            border-left: 5px solid #e10600; /* F1レッド */
-            border-radius: 5px 15px 15px 5px;
-            padding: 12px 18px;
-            margin-bottom: 20px;
-            box-shadow: 10px 10px 20px rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px); /* 背景を少しぼかす */
+        /* 記事カード：二重枠を防ぎ、1つの綺麗な枠に集約 */
+        [data-testid="stVerticalBlock"] > div:has(div.stColumns) {
+            background: rgba(30, 33, 41, 0.9);
+            border: 1px solid #343a40; /* 全体を囲う細い枠 */
+            border-left: 5px solid #e10600; /* 左側の赤いアクセントライン */
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
-        /* 3. タイトル（H1）をメカニカルなデザインに */
+        /* ボタンのスタイル統一（左右対称にするため） */
+        .stButton > button {
+            width: 100% !important;
+            border-radius: 5px !important;
+            height: 42px !important;
+            font-family: 'Orbitron', sans-serif !important;
+            font-size: 0.8rem !important;
+            transition: 0.3s !important;
+        }
+
+        /* タイトルのアンダーライン */
         h1 {
             font-family: 'Orbitron', sans-serif;
             color: #ffffff;
@@ -37,21 +47,14 @@ def apply_carbon_design():
             letter-spacing: 3px;
             border-bottom: 3px solid #e10600;
             padding-bottom: 5px;
-            text-shadow: 2px 2px 4px rgba(225, 6, 0, 0.3);
         }
 
-        /* 4. テキストの色調整 */
+        /* フォント設定 */
         p, span, label {
             color: #e0e0e0 !important;
-        }
-        
-        /* 5. 水平区切り線の色 */
-        hr {
-            border-color: rgba(225, 6, 0, 0.2);
+            line-height: 1.5 !important;
         }
         </style>
-        
-        <!-- 近未来的なフォントの読み込み -->
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
 
@@ -189,101 +192,83 @@ def refresh_news():
 # --- 4. 画面表示：Topページ ---
 def show_top_page():
     st.title("🏁 F1 Insight Engine")
-
-    # タイトルとボタンの間に物理的な隙間を作る
     st.write("") 
-    st.write("") # 2つ入れるとより明確な改行になります
-    
+    st.write("") 
+
     if st.button("🔄 最新ニュースを更新・分析"):
         refresh_news()
+    
+    st.write("")
 
     if st.session_state.top_articles:
         for idx, art in enumerate(st.session_state.top_articles):
-            # --- 1. タイヤ画像とラベルの出し分け設定 (GitHubの高品質PNGを使用) ---
+            # タイヤ設定（URLはご自身でアップロードしたものに差し替えてください）
             prio = art.get('priority', 3)
             if prio >= 5:
-                # Soft (Red)
                 tire_url = "https://raw.githubusercontent.com/narusho555-ops/f1-insight/blob/main/SOFT.png"
-                tire_color = "#e10600"
-                tire_label = "SOFT"
-                tire_sub = "CRITICAL"
+                tire_color, tire_label = "#e10600", "SOFT"
             elif prio >= 3:
-                # Medium (Yellow)
                 tire_url = "https://raw.githubusercontent.com/narusho555-ops/f1-insight/blob/main/MEDIUM.png"
-                tire_color = "#ffd200"
-                tire_label = "MEDIUM"
-                tire_sub = "IMPORTANT"
+                tire_color, tire_label = "#ffd200", "MEDIUM"
             else:
-                # Hard (White)
                 tire_url = "https://raw.githubusercontent.com/narusho555-ops/f1-insight/blob/main/HARD.png"
-                tire_color = "#ffffff"
-                tire_label = "HARD"
-                tire_sub = "INTERESTING"
+                tire_color, tire_label = "#ffffff", "HARD"
 
+            # 1つのコンテナで全体を包む
             with st.container():
-                # --- 2. 全体構造（左側カラム1.5：右側カラム3.5） ---
                 col_left, col_right = st.columns([1.5, 3.5])
                 
-                # 左側：メタ情報（ファビコン、サムネイル、タイヤ）
+                # 左側：ビジュアル要素
                 with col_left:
-                    # ファビコン
+                    # ファビコンとサムネイル
                     domain = art['link'].split('/')[2]
-                    st.image(f"https://www.google.com/s2/favicons?sz=64&domain={domain}", width=24)
+                    st.image(f"https://www.google.com/s2/favicons?sz=64&domain={domain}", width=20)
                     
-                    # 記事サムネイル
                     if art.get('img'):
                         st.image(art['img'], use_container_width=True)
                     else:
-                        # カーボン背景に馴染むプレースホルダー
                         st.image("https://via.placeholder.com/300x160/161920/ffffff?text=F1+NEWS", use_container_width=True)
                     
-                    # タイヤマークと文字（横並び）
+                    # タイヤ情報（タイヤ画像を中央に、ラベルを横に）
                     t_col1, t_col2 = st.columns([1, 2])
                     with t_col1:
-                        # GitHubのPNG画像を表示
-                        st.image(tire_url, width=45)
+                        # RawURLがまだなら、一時的に tire_url の代わりに絵文字でもOK
+                        st.image(tire_url, width=40) if "http" in tire_url else st.write("⭕")
                     with t_col2:
-                        # タイヤ名と補足情報を縦に並べる
-                        st.markdown(f"""
-                            <div style='line-height:1.1; margin-top:5px;'>
-                                <span style='color:{tire_color}; font-weight:bold; font-size:1.1rem;'>{tire_label}</span><br>
-                                <span style='color:gray; font-size:0.7rem;'>{tire_sub}</span>
-                            </div>
-                        """, unsafe_allow_html=True)
+                        st.markdown(f"<p style='color:{tire_color}; font-weight:bold; margin-top:10px; font-size:1rem;'>{tire_label}</p>", unsafe_allow_html=True)
 
-                # 右側：メインコンテンツ（タイトル、要約、ボタン）
+                # 右側：テキストとアクション
                 with col_right:
                     st.markdown(f"### {art['title']}")
                     st.write(art.get('summary_short', ''))
                     
-                    # スペースを空けてからボタンを配置
-                    st.write("") 
-                    b_col1, b_col2 = st.columns(2)
-                    with b_col1:
-                        if st.button(f"🔍 ANALYSIS", key=f"btn_ana_{idx}", use_container_width=True):
+                    st.write("") # ボタン前の微調整
+                    
+                    # ボタンを左右同じ大きさで並べる
+                    btn_col1, btn_col2 = st.columns(2)
+                    with btn_col1:
+                        if st.button(f"🔍 ANALYSIS", key=f"btn_ana_{idx}"):
                             st.session_state.selected_article = art
                             st.session_state.page = "analysis"
                             st.rerun()
-                    with b_col2:
-                        # 直接リンクボタン
+                    with btn_col2:
+                        # SOURCEボタンもAnalysisボタンと全く同じスタイルに
                         st.markdown(f'''
                             <a href="{art["link"]}" target="_blank" style="text-decoration:none;">
                                 <button style="
                                     width:100%; 
-                                    height:38px; 
+                                    height:42px; 
                                     background-color:#262730; 
                                     color:white; 
                                     border:1px solid #464b5d; 
                                     border-radius:5px;
                                     cursor:pointer;
-                                    transition: 0.3s;
+                                    font-family: 'Orbitron', sans-serif;
+                                    font-size: 0.8rem;
                                 ">🔗 SOURCE</button>
                             </a>
                         ''', unsafe_allow_html=True)
-                
-                st.divider()
-    else:
-        st.info("「最新ニュースを更新・分析」ボタンを押してください。")
+ 
 
 # --- 5. 画面表示：詳細分析画面 ---
 def show_analysis_page():
