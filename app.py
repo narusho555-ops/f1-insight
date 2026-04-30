@@ -4,9 +4,9 @@ import requests
 import json
 
 # --- 1. アプリの設定（スマホで見やすい構成） ---
-st.set_page_config(page_title="F1 Peak Insight", page_icon="🏎️")
+st.set_page_config(page_title="F1 Insight Engine", page_icon="🏎️")
 
-st.title("🏎️ F1 Peak Insight")
+st.title("🏎️ F1 Insight Engine")
 st.caption("1次ソースから真実を抽出するインテリジェンス・ツール")
 
 # --- 2. API設定（プラチナ・キーに対応！） ---
