@@ -194,34 +194,47 @@ def show_top_page():
         refresh_news()
 
     if st.session_state.top_articles:
+        # --- show_top_page 関数内の表示ループ部分 ---
         for idx, art in enumerate(st.session_state.top_articles):
+            # 重要度に応じたタイヤ設定
+            prio = art.get('priority', 3)
+            if prio >= 5:
+                tire_icon, tire_color, tire_label = "🔴", "#e10600", "SOFT (CRITICAL)"
+            elif prio >= 3:
+                tire_icon, tire_color, tire_label = "🟡", "#ffd200", "MEDIUM (IMPORTANT)"
+            else:
+                tire_icon, tire_color, tire_label = "⚪", "#ffffff", "HARD (INTERESTING)"
+        
             with st.container():
-                # カラム比率：0.3(アイコン), 1.5(画像), 3.2(テキスト)
-                col_icon, col_img, col_text = st.columns([0.3, 1.5, 3.2])
+                # カラム比率（アイコン、画像、テキスト）
+                col_icon, col_img, col_text = st.columns([0.4, 1.5, 3.1])
                 
                 with col_icon:
-                    # サイトのファビコンを表示
+                    # ファビコン表示
                     domain = art['link'].split('/')[2]
                     st.image(f"https://www.google.com/s2/favicons?sz=64&domain={domain}")
+                    # タイヤインジケーター
+                    st.markdown(f"<h2 style='text-align:center; margin:0;'>{tire_icon}</h2>", unsafe_allow_html=True)
                     
                 with col_img:
-                    # サムネイル画像を表示（個人ユース用）
+                    # サムネイル表示
                     if art.get('img'):
                         st.image(art['img'], use_container_width=True)
                     else:
-                        # 画像がない場合のプレースホルダー
                         st.image("https://via.placeholder.com/150?text=No+Image", use_container_width=True)
                 
                 with col_text:
-                    st.markdown(f"**{art['title']}**")
+                    # タイトルとタイヤラベル
+                    st.markdown(f"<span style='color:{tire_color}; font-weight:bold; font-size:0.8rem;'>{tire_label}</span>", unsafe_allow_html=True)
+                    st.markdown(f"### {art['title']}")
                     st.write(f"_{art.get('summary_short', '')}_")
                     
-                    # 詳細分析画面への遷移ボタン
-                    if st.button(f"🔍 深掘り分析する", key=f"btn_{idx}"):
+                    # 詳細分析ボタン
+                    if st.button(f"🔍 ANALYSIS DATA", key=f"btn_{idx}"):
                         st.session_state.selected_article = art
                         st.session_state.page = "analysis"
                         st.rerun()
-                st.divider() # 記事ごとの区切り線
+                st.divider()
     else:
         st.info("「最新ニュースを更新・分析」ボタンを押してください。")
 
