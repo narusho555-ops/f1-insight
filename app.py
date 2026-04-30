@@ -23,7 +23,7 @@ def apply_carbon_design():
             background: rgba(30, 33, 41, 0.8);
             border-left: 5px solid #e10600; /* F1レッド */
             border-radius: 5px 15px 15px 5px;
-            padding: 25px;
+            padding: 12px 18px;
             margin-bottom: 20px;
             box-shadow: 10px 10px 20px rgba(0,0,0,0.5);
             backdrop-filter: blur(5px); /* 背景を少しぼかす */
@@ -36,7 +36,7 @@ def apply_carbon_design():
             text-transform: uppercase;
             letter-spacing: 3px;
             border-bottom: 3px solid #e10600;
-            padding-bottom: 10px;
+            padding-bottom: 5px;
             text-shadow: 2px 2px 4px rgba(225, 6, 0, 0.3);
         }
 
@@ -189,6 +189,10 @@ def refresh_news():
 # --- 4. 画面表示：Topページ ---
 def show_top_page():
     st.title("🏁 F1 Insight Engine")
+
+    # タイトルとボタンの間に物理的な隙間を作る
+    st.write("") 
+    st.write("") # 2つ入れるとより明確な改行になります
     
     if st.button("🔄 最新ニュースを更新・分析"):
         refresh_news()
