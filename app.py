@@ -199,19 +199,19 @@ def show_top_page():
             prio = art.get('priority', 3)
             if prio >= 5:
                 # Soft (Red)
-                tire_url = "https://raw.githubusercontent.com/ajoga/f1-telemetry-display/master/images/tires/soft.png"
+                tire_url = "https://raw.githubusercontent.com/narusho555-ops/f1-insight/blob/main/SOFT.png"
                 tire_color = "#e10600"
                 tire_label = "SOFT"
                 tire_sub = "CRITICAL"
             elif prio >= 3:
                 # Medium (Yellow)
-                tire_url = "https://raw.githubusercontent.com/ajoga/f1-telemetry-display/master/images/tires/medium.png"
+                tire_url = "https://raw.githubusercontent.com/narusho555-ops/f1-insight/blob/main/MEDIUM.png"
                 tire_color = "#ffd200"
                 tire_label = "MEDIUM"
                 tire_sub = "IMPORTANT"
             else:
                 # Hard (White)
-                tire_url = "https://raw.githubusercontent.com/ajoga/f1-telemetry-display/master/images/tires/hard.png"
+                tire_url = "https://raw.githubusercontent.com/narusho555-ops/f1-insight/blob/main/HARD.png"
                 tire_color = "#ffffff"
                 tire_label = "HARD"
                 tire_sub = "INTERESTING"
