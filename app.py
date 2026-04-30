@@ -15,6 +15,21 @@ API_KEY = st.secrets["GEMINI_API_KEY"]
 # 1.5-flash ではなく gemini-pro を指定します（最も確実なパスです）
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
 
+# 診断用：今使えるモデルを一覧表示する
+diag_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={API_KEY}"
+diag_res = requests.get(diag_url)
+
+if diag_res.status_code == 200:
+    models_list = diag_res.json()
+    st.write("### 🛠️ 利用可能なモデルリスト")
+    for m in models_list.get('models', []):
+        st.write(f"- `{m['name']}` (対応機能: {m['supportedGenerationMethods']})")
+else:
+    st.error(f"モデルリストの取得に失敗しました。ステータスコード: {diag_res.status_code}")
+    st.write(diag_res.text)
+
+
+
 # --- 3. ニュース取得ロジック ---
 def analyze_news(title):
     prompt = f"F1専門家として、このニュースを日本語で鋭く分析して。タイトル: {title}"
