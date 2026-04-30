@@ -4,7 +4,7 @@ import requests
 import json
 import time
 
-# --- 1. 基本設定（モデルを2.0-flashに変更して安定性を確保） ---
+# --- 1. 基本設定（モデルを2.5-flashに指定） ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 MODEL_NAME = "gemini-2.5-flash"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
@@ -133,27 +133,39 @@ def show_top_page():
 # --- 5. 画面表示：詳細分析画面 ---
 def show_analysis_page():
     art = st.session_state.selected_article
-    if st.button("⬅️ Back to List"):
+    
+    # 【UI改善】上部のBackボタン
+    if st.button("⬅️ Back to List", key="back_top"):
         st.session_state.page = 'top'
         st.rerun()
 
     st.title(f"🔍 Deep Analysis")
     st.subheader(art['title'])
     
-    with st.spinner("AIストラテジストが深掘り中..."):
+    with st.spinner("AIストラテジストが要点を絞って深掘り中..."):
+        # 【スリム化】プロンプトに制約を追加
         deep_prompt = f"""
         記事タイトル: {art['title']}
-        以下の構成で日本語で詳しく分析してください。
-        1. ニュースの要約（さらに一歩踏み込んだ内容）
-        2. 過去の類似案件（事実に基づくエピソード）
-        3. 今後起こりそうなこと（シーズンへの影響予測）
-        4. 面白トリビア（F1の歴史や技術にまつわる豆知識）
+        以下の構成で、各項目を【簡潔な箇条書き】で日本語で分析してください。
+        全体の文章量は、詳細になりすぎず、スマホで1画面に収まる程度にスリム化すること。
+        
+        1. ニュースの要約（2〜3行で本質を突く）
+        2. 過去の類似案件（関連するエピソードを1つ厳選。次点と3番目のエピソードも参考程度に1言だけ添える）
+        3. 今後起こりそうなこと（過去の歴史・事実を踏まえて、予測される影響を2点）
+        4. 面白トリビア（100文字程度の短い豆知識を数件表示）
         """
         analysis_text = ask_gemini(deep_prompt)
         if analysis_text:
             st.markdown(analysis_text)
         else:
             st.error("詳細分析に失敗しました。")
+
+    st.divider()
+    
+    # 【UI改善】下部のBackボタン（ボトム）
+    if st.button("⬅️ Back to List", key="back_bottom"):
+        st.session_state.page = 'top'
+        st.rerun()
 
 # --- メイン制御 ---
 if st.session_state.page == 'top':
