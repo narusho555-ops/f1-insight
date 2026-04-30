@@ -12,7 +12,8 @@ st.caption("1次ソースから真実を抽出するインテリジェンス・�
 # --- 2. API設定（先ほどの成功キーを使用） ---
 API_KEY = "AIzaSyBUme94LBfSsWgcCTD8dZOWwWwWHDw4Sdw"
 MODEL_NAME = "models/gemini-3-flash-preview"
-URL = f"https://generativelanguage.googleapis.com/v1beta/{MODEL_NAME}:generateContent?key={API_KEY}"
+# v1beta を v1 に変更し、モデル名をURLに直接含める形式にします
+URL = f"https://generativelanguage.googleapis.com/v1/{MODEL_NAME}:generateContent?key={API_KEY}"
 
 # --- 3. ニュース取得ロジック ---
 def analyze_news(title):
