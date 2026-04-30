@@ -9,9 +9,11 @@ st.set_page_config(page_title="F1 Peak Insight", page_icon="🏎️")
 st.title("🏎️ F1 Peak Insight")
 st.caption("1次ソースから真実を抽出するインテリジェンス・ツール")
 
-# --- 2. API設定（Secretsから確実に読み込む） ---
+# --- 2. API設定（リンク成功済み！） ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
-# URLをこの形に固定してください
+
+# URLの中に "models/" を直接、正しい位置に含めます
+# gemini-1.5-flash または gemini-pro を指定します
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 # --- 3. ニュース取得ロジック ---
