@@ -9,14 +9,12 @@ st.set_page_config(page_title="F1 Peak Insight", page_icon="🏎️")
 st.title("🏎️ F1 Peak Insight")
 st.caption("1次ソースから真実を抽出するインテリジェンス・ツール")
 
-# --- 2. API設定（最もエラーが起きにくい組み合わせ） ---
+# --- 2. API設定（最も確実に通る「絶対パス」形式） ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 
-# モデル名から "models/" を外してみます
-MODEL_NAME = "gemini-1.5-flash" 
-
-# URLの組み立てを、モデル名をパスに含める形式からパラメータで渡す形式に変更します
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
+# 変数を使わずに、URLを完全に1本の文字列として定義します
+# これにより、スラッシュの重複やモデル名の認識ミスを物理的に防ぎます
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 # --- 3. ニュース取得ロジック ---
 def analyze_news(title):
