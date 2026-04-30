@@ -12,9 +12,8 @@ st.caption("1次ソースから真実を抽出するインテリジェンス・�
 # --- 2. API設定（リンク成功済み！） ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 
-# URLの中に "models/" を直接、正しい位置に含めます
-# gemini-1.5-flash または gemini-pro を指定します
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+# 1.5-flash ではなく gemini-pro を指定します（最も確実なパスです）
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
 
 # --- 3. ニュース取得ロジック ---
 def analyze_news(title):
