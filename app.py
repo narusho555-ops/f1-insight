@@ -4,6 +4,60 @@ import requests
 import json
 import time
 
+def apply_carbon_design():
+    st.markdown("""
+        <style>
+        /* 1. カーボンファイバー風の背景設定 */
+        .stApp {
+            background-color: #0e1117;
+            background-image: 
+                linear-gradient(45deg, #161920 25%, transparent 25%), 
+                linear-gradient(-45deg, #161920 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #161920 75%), 
+                linear-gradient(-45deg, transparent 75%, #161920 75%);
+            background-size: 4px 4px; /* 細かいカーボンパターン */
+        }
+
+        /* 2. ニュースカードを「コクピットのパネル」風に */
+        div[data-testid="stVerticalBlock"] > div:has(div.stButton) {
+            background: rgba(30, 33, 41, 0.8);
+            border-left: 5px solid #e10600; /* F1レッド */
+            border-radius: 5px 15px 15px 5px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px); /* 背景を少しぼかす */
+        }
+
+        /* 3. タイトル（H1）をメカニカルなデザインに */
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            border-bottom: 3px solid #e10600;
+            padding-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(225, 6, 0, 0.3);
+        }
+
+        /* 4. テキストの色調整 */
+        p, span, label {
+            color: #e0e0e0 !important;
+        }
+        
+        /* 5. 水平区切り線の色 */
+        hr {
+            border-color: rgba(225, 6, 0, 0.2);
+        }
+        </style>
+        
+        <!-- 近未来的なフォントの読み込み -->
+        <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    """, unsafe_allow_html=True)
+
+# --- ここで即座に実行 ---
+apply_carbon_design()
+
 # --- 1. 基本設定（モデルを2.5-flashに指定） ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 MODEL_NAME = "gemini-2.5-flash"
