@@ -59,33 +59,32 @@ def ask_gemini(prompt):
 # --- 3. ロジック：ニュース取得とTop5選別 ---
 def refresh_news():
     all_entries = []
-    seen_titles = set() # 重複チェック用
-    st.info("🔄 8つの専門ソースから最新20件以上を精査中...")
+    seen_titles = set()
+    
+    # 進行状況を見せる
+    status = st.empty() 
+    status.info("🔄 8つの専門ソースから最新ニュースを収集中...")
     
     for url in RSS_SOURCES:
         try:
             feed = feedparser.parse(url)
-            # 各ソースから最新3件を取得（合計最大24件）
+            # 各ソース最新3件を取得
             for entry in feed.entries[:3]:
-                # タイトルの最初の15文字が同じなら重複とみなす簡易フィルタ
                 title_stub = entry.title[:15]
                 if title_stub not in seen_titles:
                     all_entries.append({"title": entry.title, "link": entry.link})
                     seen_titles.add(title_stub)
-        except Exception:
-            continue
+        except Exception as e:
+            st.warning(f"ソース取得エラー ({url[:30]}...): {e}")
+
+    status.write(f"✅ 取得済み候補: {len(all_entries)}件。AIによる厳選を開始...")
 
     if not all_entries:
-        st.error("記事を取得できませんでした。")
+        st.error("記事を一つも取得できません。RSSの読み込みに失敗しています。")
         return
 
-    # AIへのプロンプト：候補が増えたので、より厳格に選別させる
     prompt = f"""
-    以下のF1ニュース候補（約20件）から、ファンが絶対に知っておくべきTop5を厳選してください。
-    【重要】
-    - 同じ話題は1つにまとめること。
-    - 公式発表、移籍、技術アップデートを最優先すること。
-    - 出力は以下のJSON形式(配列)のみを返すこと。
+    F1ニュース候補からファンが知っておくべきTop5を厳選し、以下のJSON形式(配列)のみを返せ。
     [
       {{"title": "...", "link": "...", "summary_short": "50文字要約", "priority": 1-5, "credibility": 0-100}}
     ]
@@ -94,7 +93,27 @@ def refresh_news():
     """
     
     response_text = ask_gemini(prompt)
-    # ...以下、JSONパース処理...
+    
+    if response_text:
+        # 【重要】AIが何を返したか、もしエラーならここを表示
+        try:
+            # Markdownコードブロックの除去
+            clean_json = response_text.replace('```json', '').replace('```', '').strip()
+            parsed_data = json.loads(clean_json)
+            
+            if isinstance(parsed_data, list) and len(parsed_data) > 0:
+                st.session_state.top_articles = parsed_data
+                status.empty() # 進行状況を消去
+                st.success(f"{len(parsed_data)}件のニュースを厳選しました！")
+                st.rerun() # 画面を強制再描画してリストを表示させる
+            else:
+                st.error("AIが有効なリストを返しませんでした。内容を確認してください。")
+                st.code(response_text)
+        except Exception as e:
+            st.error(f"JSON変換に失敗しました: {e}")
+            st.code(response_text) # AIの生回答を表示
+    else:
+        st.error("AIからの回答が空でした。503エラーやタイムアウトの可能性があります。")
 
 # --- 4. 画面表示：Topページ ---
 def show_top_page():
