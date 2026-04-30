@@ -9,11 +9,10 @@ st.set_page_config(page_title="F1 Peak Insight", page_icon="🏎️")
 st.title("🏎️ F1 Peak Insight")
 st.caption("1次ソースから真実を抽出するインテリジェンス・ツール")
 
-# --- 2. API設定（先ほどの成功キーを使用） ---
-API_KEY = "AIzaSyBUme94LBfSsWgcCTD8dZOWwWwWHDw4Sdw"
-# モデル名をプレフィックス付きで正確に指定
-MODEL_NAME = "models/gemini-3-flash-preview"
-# URLを v1beta に戻し、形式を「APIリファレンス準拠」に修正
+# --- 2. API設定（キーは直接書かずに金庫から呼び出す） ---
+# st.secrets を使うことで、公開コードからキーを隠せます
+API_KEY = st.secrets["GEMINI_API_KEY"] 
+MODEL_NAME = "models/gemini-1.5-flash" # 一旦最も安定しているモデルにします
 URL = f"https://generativelanguage.googleapis.com/v1beta/{MODEL_NAME}:generateContent?key={API_KEY}"
 
 # --- 3. ニュース取得ロジック ---
