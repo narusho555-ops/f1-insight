@@ -5,7 +5,7 @@ import json
 
 # --- 1. 基本設定 ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
-MODEL_NAME = "gemini-2.0-flash"
+MODEL_NAME = "gemini-2.5-flash"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
 
 # ソースリスト
@@ -63,35 +63,22 @@ def refresh_news():
     all_entries = []
     for url in RSS_SOURCES:
         feed = feedparser.parse(url)
-        for entry in feed.entries[:5]:
+        # 各ソース「最新2件」に限定してダイエット
+        for entry in feed.entries[:2]:
             all_entries.append({"title": entry.title, "link": entry.link})
     
-    # プロンプトに「余計なことは言わない」指示を強調
+    # 処理対象を最大10件程度に絞り込む
+    limited_entries = all_entries[:10]
+    
     prompt = f"""
-    以下のF1ニュースリストから、重要度が高い順にTop5を選んでください。
-    説明や挨拶は一切不要です。必ず以下のJSON形式のみを返してください。
+    F1ニュースから重要度Top5を厳選し、以下のJSONのみ返せ。
     [
-      {{"title": "タイトル", "link": "URL", "summary_short": "50文字程度の要約", "priority": 1〜5, "credibility": 0〜100}}
+      {{"title": "...", "link": "...", "summary_short": "50文字要約", "priority": 1-5, "credibility": 0-100}}
     ]
-    ニュースリスト:
-    {json.dumps(all_entries[:20])}
+    List:
+    {json.dumps(limited_entries)}
     """
-    
-    response_text = ask_gemini(prompt)
-    
-    if response_text:
-        # デバッグ用：AIが返してきた生のテキストを一時的に表示
-        with st.expander("🔍 AIからの生レスポンスを確認（デバッグ用）"):
-            st.code(response_text, language="text")
-        
-        try:
-            # Markdownのコードブロック記法を取り除く
-            clean_json = response_text.replace('```json', '').replace('```', '').strip()
-            st.session_state.top_articles = json.loads(clean_json)
-            st.success("ニュースの選別が完了しました！")
-        except Exception as e:
-            st.error(f"JSONパースエラー: {e}")
-            st.info("AIの回答がJSON形式として正しくないようです。上のデバッグログを確認してください。")
+    # 以降、ask_geminiを呼び出す処理
 
 # --- 4. 画面表示：Topページ ---
 def show_top_page():
