@@ -200,18 +200,18 @@ def show_top_page():
             if prio >= 5:
                 tire_img = "https://raw.githubusercontent.com/f1-data-analysis/f1-icons/main/tires/soft.png" # 適宜、有効な画像URLに差し替え
                 tire_color = "#e10600"
-                tire_label = "SOFT"
+                tire_label = "SOFT(CRITICAL)"
                 # 代替案（絵文字を装飾する場合）
                 tire_html = f"<span style='color:{tire_color}; font-size:2rem;'>⭕</span>" 
             elif prio >= 3:
                 tire_img = "https://raw.githubusercontent.com/f1-data-analysis/f1-icons/main/tires/medium.png"
                 tire_color = "#ffd200"
-                tire_label = "MEDIUM"
+                tire_label = "MEDIUM(IMPORTANT)"
                 tire_html = f"<span style='color:{tire_color}; font-size:2rem;'>⭕</span>"
             else:
                 tire_img = "https://raw.githubusercontent.com/f1-data-analysis/f1-icons/main/tires/hard.png"
                 tire_color = "#ffffff"
-                tire_label = "HARD"
+                tire_label = "HARD(INTERESTING)"
                 tire_html = f"<span style='color:{tire_color}; font-size:2rem;'>⭕</span>"
 
             with st.container():
