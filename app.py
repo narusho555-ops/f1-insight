@@ -2,13 +2,14 @@ import streamlit as st
 import feedparser
 import requests
 import json
+import time
 
-# --- 1. 基本設定 ---
+# --- 1. 基本設定（モデルを2.0-flashに変更して安定性を確保） ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-2.0-flash"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
 
-# ソースリスト
+# 信頼できるソースリスト
 RSS_SOURCES = [
     "https://www.formula1.com/en/latest/all.xml",
     "https://www.autosport.com/rss/f1/",
@@ -24,69 +25,88 @@ if 'selected_article' not in st.session_state:
 if 'top_articles' not in st.session_state:
     st.session_state.top_articles = []
 
-# --- 2. AIへのリクエスト関数（デバッグ出力を追加） ---
-import time
-
+# --- 2. AIへのリクエスト関数（リトライ機能付き） ---
 def ask_gemini(prompt):
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     headers = {"Content-Type": "application/json"}
     
-    max_retries = 3  # 最大3回リトライ
-    retry_delay = 2  # 失敗時に2秒待機
+    max_retries = 3
+    retry_delay = 2
     
     for i in range(max_retries):
         try:
             res = requests.post(URL, headers=headers, data=json.dumps(payload))
-            
             if res.status_code == 200:
                 text = res.json()['candidates'][0]['content']['parts'][0]['text']
                 return text
             elif res.status_code == 503:
-                # 混雑時の対応：少し待ってリトライ
-                st.warning(f"サーバーが混雑しています（試行 {i+1}/{max_retries}）。再試行中...")
+                st.warning(f"サーバー混雑中...再試行します ({i+1}/{max_retries})")
                 time.sleep(retry_delay)
-                retry_delay *= 2  # 待機時間を倍にしていく（指数バックオフ）
+                retry_delay *= 2
                 continue
             else:
-                st.error(f"APIリクエスト失敗 ステータスコード: {res.status_code}")
-                st.write(res.text)
+                st.error(f"APIエラー ({res.status_code}): {res.text}")
                 return None
         except Exception as e:
-            st.error(f"通信エラーが発生しました: {e}")
+            st.error(f"通信エラー: {e}")
             return None
-            
-    st.error("サーバーの混雑が続いています。少し時間を置いてから再度お試しください。")
     return None
 
-# --- 3. ロジック：ニュース取得とTop5選別（詳細ログ表示版） ---
+# --- 3. ロジック：ニュース取得とTop5選別 ---
 def refresh_news():
     all_entries = []
+    st.info("🔄 最新ニュースを収集中...")
+    
     for url in RSS_SOURCES:
-        feed = feedparser.parse(url)
-        # 各ソース「最新2件」に限定してダイエット
-        for entry in feed.entries[:2]:
-            all_entries.append({"title": entry.title, "link": entry.link})
-    
-    # 処理対象を最大10件程度に絞り込む
-    limited_entries = all_entries[:10]
-    
+        try:
+            feed = feedparser.parse(url)
+            # 各ソースから最新2件に絞って負荷軽減
+            for entry in feed.entries[:2]:
+                all_entries.append({"title": entry.title, "link": entry.link})
+        except Exception as e:
+            st.warning(f"ソース取得失敗 ({url}): {e}")
+
+    if not all_entries:
+        st.error("記事を一つも取得できませんでした。")
+        return
+
+    # AIへの指示（JSONのみを出力させる）
     prompt = f"""
-    F1ニュースから重要度Top5を厳選し、以下のJSONのみ返せ。
+    F1ニュースから重要度Top5を厳選し、以下のJSON形式(配列)のみを返せ。余計な文章は一切不要。
     [
-      {{"title": "...", "link": "...", "summary_short": "50文字要約", "priority": 1-5, "credibility": 0-100}}
+      {{"title": "ニュース名", "link": "URL", "summary_short": "50文字程度の要約", "priority": 1-5, "credibility": 0-100}}
     ]
     List:
-    {json.dumps(limited_entries)}
+    {json.dumps(all_entries[:10])}
     """
-    # 以降、ask_geminiを呼び出す処理
+    
+    response_text = ask_gemini(prompt)
+    
+    if response_text:
+        # デバッグ用エクスパンダー
+        with st.expander("🔍 デバッグ：AIの生回答"):
+            st.code(response_text)
+        
+        try:
+            # Markdown記法を除去してパース
+            clean_json = response_text.replace('```json', '').replace('```', '').strip()
+            parsed_data = json.loads(clean_json)
+            
+            if isinstance(parsed_data, list) and len(parsed_data) > 0:
+                st.session_state.top_articles = parsed_data
+                st.success("ニュースの更新が完了しました！")
+            else:
+                st.warning("有効なニュースリストが生成されませんでした。")
+        except Exception as e:
+            st.error(f"JSONパースエラー: {e}")
 
 # --- 4. 画面表示：Topページ ---
 def show_top_page():
-    st.title("🏁 F1 Insight: Top 5 Highlights")
+    st.title("🏁 F1 Insight Engine")
+    st.subheader("Today's Top 5 Intelligence")
     
     if st.button("🔄 最新ニュースを更新・分析"):
-        with st.spinner("パドックから情報を収集し、重要度を判定中..."):
-            refresh_news()
+        refresh_news()
 
     if st.session_state.top_articles:
         for idx, art in enumerate(st.session_state.top_articles):
@@ -94,9 +114,9 @@ def show_top_page():
                 st.markdown(f"### {idx+1}. {art['title']}")
                 st.write(f"📝 {art['summary_short']}")
                 
-                # 視覚的な信憑性インジケーター
-                c_color = "green" if art['credibility'] > 80 else "orange"
-                st.markdown(f"🛡️ 信憑性: :{c_color}[{art['credibility']}%]")
+                # 信憑性カラー表示
+                c_color = "green" if art.get('credibility', 0) > 80 else "orange"
+                st.markdown(f"🛡️ 信憑性: :{c_color}[{art.get('credibility', 0)}%]")
                 
                 col1, col2 = st.columns([1, 4])
                 with col1:
@@ -107,6 +127,8 @@ def show_top_page():
                 with col2:
                     st.caption(f"[原文ソースを読む]({art['link']})")
                 st.divider()
+    else:
+        st.info("上のボタンを押してニュースを取得してください。")
 
 # --- 5. 画面表示：詳細分析画面 ---
 def show_analysis_page():
@@ -115,19 +137,23 @@ def show_analysis_page():
         st.session_state.page = 'top'
         st.rerun()
 
-    st.title(f"🔍 Analysis: {art['title']}")
+    st.title(f"🔍 Deep Analysis")
+    st.subheader(art['title'])
     
-    with st.spinner("AIが過去のデータと照合して深掘り中..."):
+    with st.spinner("AIストラテジストが深掘り中..."):
         deep_prompt = f"""
         記事タイトル: {art['title']}
-        この記事について、以下の構成で日本語で詳しく分析してください：
+        以下の構成で日本語で詳しく分析してください。
         1. ニュースの要約（さらに一歩踏み込んだ内容）
-        2. 過去の類似案件（例：似たようなマシントラブル、移籍劇など）
-        3. 今後起こりそうなこと（このニュースがシーズンに与える影響）
-        4. 面白トリビア（事実に基づいたF1の豆知識）
+        2. 過去の類似案件（事実に基づくエピソード）
+        3. 今後起こりそうなこと（シーズンへの影響予測）
+        4. 面白トリビア（F1の歴史や技術にまつわる豆知識）
         """
         analysis_text = ask_gemini(deep_prompt)
-        st.markdown(analysis_text)
+        if analysis_text:
+            st.markdown(analysis_text)
+        else:
+            st.error("詳細分析に失敗しました。")
 
 # --- メイン制御 ---
 if st.session_state.page == 'top':
