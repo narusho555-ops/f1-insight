@@ -9,25 +9,14 @@ st.set_page_config(page_title="F1 Peak Insight", page_icon="🏎️")
 st.title("🏎️ F1 Peak Insight")
 st.caption("1次ソースから真実を抽出するインテリジェンス・ツール")
 
-# --- 2. API設定（リンク成功済み！） ---
+# --- 2. API設定（プラチナ・キーに対応！） ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
 
-# 1.5-flash ではなく gemini-pro を指定します（最も確実なパスです）
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
+# リストで確認した最新・最強モデル「gemini-2.5-flash」を指定
+MODEL_NAME = "gemini-2.5-flash"
 
-# 診断用：今使えるモデルを一覧表示する
-diag_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={API_KEY}"
-diag_res = requests.get(diag_url)
-
-if diag_res.status_code == 200:
-    models_list = diag_res.json()
-    st.write("### 🛠️ 利用可能なモデルリスト")
-    for m in models_list.get('models', []):
-        st.write(f"- `{m['name']}` (対応機能: {m['supportedGenerationMethods']})")
-else:
-    st.error(f"モデルリストの取得に失敗しました。ステータスコード: {diag_res.status_code}")
-    st.write(diag_res.text)
-
+# URLの形式は、これまでの「/models/」を含める形に戻します
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
 
 
 # --- 3. ニュース取得ロジック ---
