@@ -6,7 +6,7 @@ import time
 
 # --- 1. 基本設定（モデルを2.0-flashに変更して安定性を確保） ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
-MODEL_NAME = "gemini-2.0-flash"
+MODEL_NAME = "gemini-2.5-flash"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
 
 # 信頼できるソースリスト
