@@ -6,7 +6,17 @@ import time
 
 # --- 1. 基本設定（モデルを2.5-flashに指定） ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
-MODEL_NAME = "gemini-2.5-flash"
+
+###########################
+# 本来は2.5-flashを使いたい #
+# 下の2行を有効化する       #
+###########################
+# MODEL_NAME = "gemini-2.5-flash"
+# URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
+
+# クォータ制限(429)を回避するため、2.5から1.5にモデルを変更
+# 1.5 Flashは無料枠でも1日1,500件程度までリクエスト可能なため、開発に最適です
+MODEL_NAME = "gemini-1.5-flash" 
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
 
 # 信頼できるソースリスト
