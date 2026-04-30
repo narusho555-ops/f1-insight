@@ -24,29 +24,35 @@ if 'selected_article' not in st.session_state:
 if 'top_articles' not in st.session_state:
     st.session_state.top_articles = []
 
-# --- 2. AIへのリクエスト関数 ---
+# --- 2. AIへのリクエスト関数（デバッグ出力を追加） ---
 def ask_gemini(prompt):
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     headers = {"Content-Type": "application/json"}
-    res = requests.post(URL, headers=headers, data=json.dumps(payload))
-    if res.status_code == 200:
-        # JSON部分を抽出（AIの回答から純粋なJSONのみを取得する工夫）
-        text = res.json()['candidates'][0]['content']['parts'][0]['text']
-        return text
-    return None
+    try:
+        res = requests.post(URL, headers=headers, data=json.dumps(payload))
+        if res.status_code == 200:
+            text = res.json()['candidates'][0]['content']['parts'][0]['text']
+            return text
+        else:
+            st.error(f"APIリクエスト失敗 ステータスコード: {res.status_code}")
+            st.write(res.text)
+            return None
+    except Exception as e:
+        st.error(f"通信エラーが発生しました: {e}")
+        return None
 
-# --- 3. ロジック：ニュース取得とTop5選別 ---
+# --- 3. ロジック：ニュース取得とTop5選別（詳細ログ表示版） ---
 def refresh_news():
     all_entries = []
     for url in RSS_SOURCES:
         feed = feedparser.parse(url)
-        for entry in feed.entries[:5]: # 各ソースから最新5件
+        for entry in feed.entries[:5]:
             all_entries.append({"title": entry.title, "link": entry.link})
     
-    # AIに優先度と信憑性を判定させる
+    # プロンプトに「余計なことは言わない」指示を強調
     prompt = f"""
     以下のF1ニュースリストから、重要度が高い順にTop5を選んでください。
-    出力は必ず以下のJSON形式のみで返してください。
+    説明や挨拶は一切不要です。必ず以下のJSON形式のみを返してください。
     [
       {{"title": "タイトル", "link": "URL", "summary_short": "50文字程度の要約", "priority": 1〜5, "credibility": 0〜100}}
     ]
@@ -55,12 +61,20 @@ def refresh_news():
     """
     
     response_text = ask_gemini(prompt)
-    try:
-        # Markdownのコードブロック（```json ... ```）を削除して解析
-        clean_json = response_text.replace('```json', '').replace('```', '').strip()
-        st.session_state.top_articles = json.loads(clean_json)
-    except:
-        st.error("AIによる選別でエラーが発生しました。")
+    
+    if response_text:
+        # デバッグ用：AIが返してきた生のテキストを一時的に表示
+        with st.expander("🔍 AIからの生レスポンスを確認（デバッグ用）"):
+            st.code(response_text, language="text")
+        
+        try:
+            # Markdownのコードブロック記法を取り除く
+            clean_json = response_text.replace('```json', '').replace('```', '').strip()
+            st.session_state.top_articles = json.loads(clean_json)
+            st.success("ニュースの選別が完了しました！")
+        except Exception as e:
+            st.error(f"JSONパースエラー: {e}")
+            st.info("AIの回答がJSON形式として正しくないようです。上のデバッグログを確認してください。")
 
 # --- 4. 画面表示：Topページ ---
 def show_top_page():
