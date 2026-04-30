@@ -62,92 +62,114 @@ def refresh_news():
     all_entries = []
     seen_titles = set()
     
-    # 進行状況をユーザーに見せる
     status = st.empty() 
     status.info("🔄 8つの専門ソースから最新ニュースを収集中...")
     
-    # 1. ニュース収集（ダイエット＆重複排除）
+    # 1. ニュース収集（画像URLも一緒に保持しておく）
     for url in RSS_SOURCES:
         try:
             feed = feedparser.parse(url)
-            # 各ソース最新3件を取得（ソースを増やしても負荷を抑える）
             for entry in feed.entries[:3]:
-                # タイトルの冒頭15文字で簡易的な重複チェック
+                # 画像URLの抽出試行
+                img_url = None
+                if 'media_content' in entry:
+                    img_url = entry.media_content[0]['url']
+                elif 'media_thumbnail' in entry:
+                    img_url = entry.media_thumbnail[0]['url']
+                elif 'links' in entry:
+                    for link in entry.links:
+                        if 'image' in link.get('type', ''):
+                            img_url = link.href
+
                 title_stub = entry.title[:15].lower()
                 if title_stub not in seen_titles:
-                    all_entries.append({"title": entry.title, "link": entry.link})
+                    all_entries.append({
+                        "title": entry.title, 
+                        "link": entry.link,
+                        "img": img_url # ここで一旦全候補の画像を持っておく
+                    })
                     seen_titles.add(title_stub)
         except Exception as e:
-            st.warning(f"ソース取得エラー ({url[:30]}...): {e}")
+            st.warning(f"ソース取得エラー: {e}")
 
     if not all_entries:
         status.empty()
-        st.error("記事を一つも取得できませんでした。RSSソースの設定を確認してください。")
+        st.error("記事を取得できませんでした。")
         return
 
-    status.write(f"✅ 取得済み候補: {len(all_entries)}件。AIによるTop5厳選を開始...")
+    status.write(f"✅ 候補{len(all_entries)}件。AIによるTop5選別中...")
 
-    # 2. AI（Gemini 2.5 Flash）へのプロンプト
+    # 2. AIへのプロンプト（JSON形式を厳守）
     prompt = f"""
-    以下のF1ニュース候補から、ファンが今読むべき重要なTop5を厳選してください。
-    【重要ルール】
-    - 同じ話題は1つに絞り、重複を避けること。
-    - 公式発表、移籍、技術アップデートを最優先すること。
-    - 回答は必ず以下のJSON形式(配列)のみを返すこと。挨拶や説明は一切不要。
+    F1ニュース候補から重要なTop5を厳選し、以下のJSON形式(配列)のみを返せ。
     [
-      {{"title": "ニュース名", "link": "URL", "summary_short": "50文字程度の要約", "priority": 1-5, "credibility": 0-100}}
+      {{"title": "...", "link": "...", "summary_short": "50文字要約", "priority": 1-5}}
     ]
-    リスト:
-    {json.dumps(all_entries)}
+    リスト: {json.dumps([{"title": e['title'], "link": e['link']} for e in all_entries])}
     """
     
-    # 3. AIにリクエスト
     response_text = ask_gemini(prompt)
     
     if response_text:
         try:
-            # Markdown記法の除去（```json ... ``` が混じった場合の対策）
             clean_json = response_text.replace('```json', '').replace('```', '').strip()
             parsed_data = json.loads(clean_json)
             
-            if isinstance(parsed_data, list) and len(parsed_data) > 0:
-                # 【爆速戻りの鍵】セッション状態に保存
+            if isinstance(parsed_data, list):
+                # 【重要】AIが選んだTop5に、元のリストから画像を紐付ける（必要な分だけ）
+                for art in parsed_data:
+                    original = next((x for x in all_entries if x['title'] == art['title']), None)
+                    if original:
+                        art['img'] = original.get('img')
+                
                 st.session_state.top_articles = parsed_data
                 status.empty()
-                st.success(f"{len(parsed_data)}件のニュースを厳選しました！")
-                # 画面を強制再描画して、保存したリストを表示させる
+                st.success("最新のF1ニュースを更新しました！")
                 st.rerun() 
-            else:
-                status.empty()
-                st.error("AIが有効なリストを返しませんでした。")
-                with st.expander("AIの生回答を確認"):
-                    st.code(response_text)
         except Exception as e:
-            status.empty()
-            st.error(f"JSON変換に失敗しました: {e}")
-            with st.expander("AIの生回答を確認"):
-                st.code(response_text)
+            st.error(f"JSON変換失敗: {e}")
+            st.code(response_text)
     else:
-        status.empty()
-        st.error("AIからの回答が空でした。サーバー混雑(503)の可能性があります。")
+        st.error("APIの1日あたりの制限に達しました。明日またお試しください。")
 
 # --- 4. 画面表示：Topページ ---
 def show_top_page():
     st.title("🏁 F1 Insight Engine")
     
-    # ニュースを更新するボタン（明示的に押した時だけAIが走る）
     if st.button("🔄 最新ニュースを更新・分析"):
         refresh_news()
 
-    # すでにニュースリストが存在すれば表示する（Backで戻った時はここが即座に動く）
     if st.session_state.top_articles:
         for idx, art in enumerate(st.session_state.top_articles):
             with st.container():
-                # (中略: 記事のタイトルや概要表示ロジック)
-                st.markdown(f"### {idx+1}. {art['title']}")
-                # ...
+                # カラム比率：0.3(アイコン), 1.5(画像), 3.2(テキスト)
+                col_icon, col_img, col_text = st.columns([0.3, 1.5, 3.2])
+                
+                with col_icon:
+                    # サイトのファビコンを表示
+                    domain = art['link'].split('/')[2]
+                    st.image(f"https://www.google.com/s2/favicons?sz=64&domain={domain}")
+                    
+                with col_img:
+                    # サムネイル画像を表示（個人ユース用）
+                    if art.get('img'):
+                        st.image(art['img'], use_container_width=True)
+                    else:
+                        # 画像がない場合のプレースホルダー
+                        st.image("https://via.placeholder.com/150?text=No+Image", use_container_width=True)
+                
+                with col_text:
+                    st.markdown(f"**{art['title']}**")
+                    st.write(f"_{art.get('summary_short', '')}_")
+                    
+                    # 詳細分析画面への遷移ボタン
+                    if st.button(f"🔍 深掘り分析する", key=f"btn_{idx}"):
+                        st.session_state.selected_article = art
+                        st.session_state.page = "analysis"
+                        st.rerun()
+                st.divider() # 記事ごとの区切り線
     else:
-        st.info("「最新ニュースを更新・分析」ボタンを押して情報を取得してください。")
+        st.info("「最新ニュースを更新・分析」ボタンを押してください。")
 
 # --- 5. 画面表示：詳細分析画面 ---
 def show_analysis_page():
