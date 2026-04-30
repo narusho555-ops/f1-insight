@@ -21,9 +21,15 @@ def analyze_news(title):
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
         res = requests.post(URL, headers={'Content-Type': 'application/json'}, data=json.dumps(payload))
-        return res.json()['candidates'][0]['content']['parts'][0]['text']
-    except:
-        return "解析エラーが発生しました。時間を置いて試してください。"
+        res_json = res.json()
+        
+        # もしAPI側でエラーがあれば、その理由を表示する
+        if 'error' in res_json:
+            return f"APIエラー: {res_json['error']['message']}"
+            
+        return res_json['candidates'][0]['content']['parts'][0]['text']
+    except Exception as e:
+        return f"接続エラー: {str(e)}"
 
 # --- 4. UI（サイドバーとメイン画面） ---
 with st.sidebar:
