@@ -194,46 +194,66 @@ def show_top_page():
         refresh_news()
 
     if st.session_state.top_articles:
-        # --- show_top_page 関数内の表示ループ部分 ---
         for idx, art in enumerate(st.session_state.top_articles):
-            # 重要度に応じたタイヤ設定
+            # --- 1. タイヤ画像とラベルの出し分け設定 ---
             prio = art.get('priority', 3)
             if prio >= 5:
-                tire_icon, tire_color, tire_label = "🔴", "#e10600", "SOFT (CRITICAL)"
+                tire_img = "https://raw.githubusercontent.com/f1-data-analysis/f1-icons/main/tires/soft.png" # 適宜、有効な画像URLに差し替え
+                tire_color = "#e10600"
+                tire_label = "SOFT"
+                # 代替案（絵文字を装飾する場合）
+                tire_html = f"<span style='color:{tire_color}; font-size:2rem;'>⭕</span>" 
             elif prio >= 3:
-                tire_icon, tire_color, tire_label = "🟡", "#ffd200", "MEDIUM (IMPORTANT)"
+                tire_img = "https://raw.githubusercontent.com/f1-data-analysis/f1-icons/main/tires/medium.png"
+                tire_color = "#ffd200"
+                tire_label = "MEDIUM"
+                tire_html = f"<span style='color:{tire_color}; font-size:2rem;'>⭕</span>"
             else:
-                tire_icon, tire_color, tire_label = "⚪", "#ffffff", "HARD (INTERESTING)"
-        
+                tire_img = "https://raw.githubusercontent.com/f1-data-analysis/f1-icons/main/tires/hard.png"
+                tire_color = "#ffffff"
+                tire_label = "HARD"
+                tire_html = f"<span style='color:{tire_color}; font-size:2rem;'>⭕</span>"
+
             with st.container():
-                # カラム比率（アイコン、画像、テキスト）
-                col_icon, col_img, col_text = st.columns([0.4, 1.5, 3.1])
+                # --- 2. 全体構造（左側カラム1.5：右側カラム3.5） ---
+                col_left, col_right = st.columns([1.5, 3.5])
                 
-                with col_icon:
-                    # ファビコン表示
+                # 左側：メタ情報（ファビコン、サムネイル、タイヤ）
+                with col_left:
+                    # ファビコン
                     domain = art['link'].split('/')[2]
-                    st.image(f"https://www.google.com/s2/favicons?sz=64&domain={domain}")
-                    # タイヤインジケーター
-                    st.markdown(f"<h2 style='text-align:center; margin:0;'>{tire_icon}</h2>", unsafe_allow_html=True)
+                    st.image(f"https://www.google.com/s2/favicons?sz=64&domain={domain}", width=32)
                     
-                with col_img:
-                    # サムネイル表示
+                    # 記事サムネイル
                     if art.get('img'):
                         st.image(art['img'], use_container_width=True)
                     else:
-                        st.image("https://via.placeholder.com/150?text=No+Image", use_container_width=True)
-                
-                with col_text:
-                    # タイトルとタイヤラベル
-                    st.markdown(f"<span style='color:{tire_color}; font-weight:bold; font-size:0.8rem;'>{tire_label}</span>", unsafe_allow_html=True)
-                    st.markdown(f"### {art['title']}")
-                    st.write(f"_{art.get('summary_short', '')}_")
+                        st.image("https://via.placeholder.com/300x160/161920/ffffff?text=F1+NEWS", use_container_width=True)
                     
-                    # 詳細分析ボタン
-                    if st.button(f"🔍 ANALYSIS DATA", key=f"btn_{idx}"):
-                        st.session_state.selected_article = art
-                        st.session_state.page = "analysis"
-                        st.rerun()
+                    # タイヤマークと文字（横並び）
+                    t_col1, t_col2 = st.columns([1, 2])
+                    with t_col1:
+                        # ここは本物の画像URLがあれば st.image で、なければCSS装飾した文字で
+                        st.markdown(tire_html, unsafe_allow_html=True)
+                    with t_col2:
+                        st.markdown(f"<p style='color:{tire_color}; font-weight:bold; margin-top:10px;'>{tire_label}</p>", unsafe_allow_html=True)
+
+                # 右側：メインコンテンツ（タイトル、要約、ボタン）
+                with col_right:
+                    st.markdown(f"### {art['title']}")
+                    st.write(art.get('summary_short', ''))
+                    
+                    # ボタン類を横並びに
+                    b_col1, b_col2 = st.columns(2)
+                    with b_col1:
+                        if st.button(f"🔍 ANALYSIS", key=f"btn_ana_{idx}", use_container_width=True):
+                            st.session_state.selected_article = art
+                            st.session_state.page = "analysis"
+                            st.rerun()
+                    with b_col2:
+                        # 直接リンクボタン（aタグで装飾）
+                        st.markdown(f'<a href="{art["link"]}" target="_blank" style="text-decoration:none;"><button style="width:100%; height:38px; background-color:#262730; color:white; border:1px solid #464b5d; border-radius:5px;">🔗 SOURCE</button></a>', unsafe_allow_html=True)
+                
                 st.divider()
     else:
         st.info("「最新ニュースを更新・分析」ボタンを押してください。")
