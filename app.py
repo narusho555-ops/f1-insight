@@ -25,21 +25,38 @@ if 'top_articles' not in st.session_state:
     st.session_state.top_articles = []
 
 # --- 2. AIへのリクエスト関数（デバッグ出力を追加） ---
+import time
+
 def ask_gemini(prompt):
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     headers = {"Content-Type": "application/json"}
-    try:
-        res = requests.post(URL, headers=headers, data=json.dumps(payload))
-        if res.status_code == 200:
-            text = res.json()['candidates'][0]['content']['parts'][0]['text']
-            return text
-        else:
-            st.error(f"APIリクエスト失敗 ステータスコード: {res.status_code}")
-            st.write(res.text)
+    
+    max_retries = 3  # 最大3回リトライ
+    retry_delay = 2  # 失敗時に2秒待機
+    
+    for i in range(max_retries):
+        try:
+            res = requests.post(URL, headers=headers, data=json.dumps(payload))
+            
+            if res.status_code == 200:
+                text = res.json()['candidates'][0]['content']['parts'][0]['text']
+                return text
+            elif res.status_code == 503:
+                # 混雑時の対応：少し待ってリトライ
+                st.warning(f"サーバーが混雑しています（試行 {i+1}/{max_retries}）。再試行中...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # 待機時間を倍にしていく（指数バックオフ）
+                continue
+            else:
+                st.error(f"APIリクエスト失敗 ステータスコード: {res.status_code}")
+                st.write(res.text)
+                return None
+        except Exception as e:
+            st.error(f"通信エラーが発生しました: {e}")
             return None
-    except Exception as e:
-        st.error(f"通信エラーが発生しました: {e}")
-        return None
+            
+    st.error("サーバーの混雑が続いています。少し時間を置いてから再度お試しください。")
+    return None
 
 # --- 3. ロジック：ニュース取得とTop5選別（詳細ログ表示版） ---
 def refresh_news():
