@@ -5,7 +5,7 @@ import json
 
 # --- 1. 基本設定 ---
 API_KEY = st.secrets["GEMINI_API_KEY"]
-MODEL_NAME = "gemini-2.5-flash"
+MODEL_NAME = "gemini-2.0-flash"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
 
 # ソースリスト
