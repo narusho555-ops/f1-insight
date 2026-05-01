@@ -136,18 +136,24 @@ def apply_carbon_design():
             padding: 2px;
         }
         
-        /* 記事カードの枠指定 */
+        /* 記事カードの枠指定（全角丸バージョン） */
         div.article-card {
             background: linear-gradient(135deg, rgba(30, 33, 41, 0.95) 0%, rgba(15, 17, 22, 0.98) 100%);
-            border-left: 5px solid #e10600;
+            border-left: 6px solid #e10600; /* ラインを少し太くして存在感を強調 */
             border-top: 1px solid #343a40;
             border-right: 1px solid #343a40;
             border-bottom: 1px solid #343a40;
-            border-radius: 0px 8px 8px 0px;
+            
+            /* すべての角を8pxで丸める */
+            border-radius: 12px; 
+            /* 重要：これによって左端の赤いラインの上下も丸くカットされます */
+            overflow: hidden; 
+            
             padding: 20px;
             margin-bottom: 20px;
             box-shadow: 10px 10px 20px rgba(0,0,0,0.5);
         }
+        
         /* ホバー時はラインの発光のみ */
         div.article-card:hover {
             border-left: 5px solid #ff1e1e;
