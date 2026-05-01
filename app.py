@@ -128,8 +128,7 @@ def apply_carbon_design():
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
 
-# --- CSS適用 ---
-apply_carbon_design()
+
 
 def handle_click():
     # URLの末尾に ?sel=数字 が付いているかチェック
@@ -147,6 +146,9 @@ def handle_click():
 
 # ページ表示の直前に実行
 handle_click()
+
+# --- CSS適用 ---
+apply_carbon_design()
 
 # --- 1. 基本設定 ---
 # DEBUG_MODEに関わらず、APIキーの取得は試みる
