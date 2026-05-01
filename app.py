@@ -124,6 +124,17 @@ def apply_carbon_design():
             font-size: 0.7rem;
             letter-spacing: 2px;
         }
+        
+        /* 9. ファビコンのスタイル調整 */
+        .favicon-img {
+            width: 28px !important;      /* サイズを少し拡大 */
+            height: 28px !important;
+            border-radius: 4px;         /* 角を少し丸める */
+            margin-bottom: 8px;
+            opacity: 0.9;               /* 10%だけ透かして背景に馴染ませる */
+            background-color: rgba(255,255,255,0.05); /* 薄い背景をつけて視認性確保 */
+            padding: 2px;
+        }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
@@ -355,10 +366,13 @@ def show_top_page():
                 col_left, col_right = st.columns([1.5, 3.5])
                 
                 with col_left:
-                    # ファビコン表示エラー対策（本番はRSSリンクのドメインから取得）
+                    # ファビコン表示部分をクラス指定に変更
                     try:
                         domain = art['link'].split('/')[2]
-                        st.markdown(f'<img src="https://www.google.com/s2/favicons?sz=64&domain={domain}" width="20" style="margin-bottom:5px;">', unsafe_allow_html=True)
+                        st.markdown(f'''
+                            <img src="https://www.google.com/s2/favicons?sz=64&domain={domain}" 
+                                 class="favicon-img">
+                        ''', unsafe_allow_html=True)
                     except: pass
                     
                     # --- 画像表示の改良 ---
