@@ -398,76 +398,77 @@ def show_top_page():
     st.write("")
 
     if st.session_state.top_articles:
-        for idx, art in enumerate(st.session_state.top_articles):
-            # カード全体を1つのコンテナに入れ、CSSを適用させる
-        with st.container():
-            # ここでHTMLのクラス名を注入（Streamlitの隠し仕様的なハックですが、確実です）
-            st.markdown('<div class="article-card">', unsafe_allow_html=True)
-            
-            # タイヤ設定
-            try:
-                prio = int(art.get('priority', 3))
-            except:
-                prio = 3
-                
-            if prio >= 5:
-                tire_icon, tire_color, tire_label = "🔴", "#e10600", "SOFT (CRITICAL)"
-            elif prio >= 3:
-                tire_icon, tire_color, tire_label = "🟡", "#ffd200", "MEDIUM (IMPORTANT)"
-            else:
-                tire_icon, tire_color, tire_label = "⚪", "#ffffff", "HARD (INTERESTING)"
-
-            with st.container():
-                col_left, col_right = st.columns([1.5, 3.5])
-                
-                with col_left:
-                    # ファビコン表示部分をクラス指定に変更
-                    try:
-                        domain = art['link'].split('/')[2]
-                        st.markdown(f'''
-                            <img src="https://www.google.com/s2/favicons?sz=64&domain={domain}" 
-                                 class="favicon-img">
-                        ''', unsafe_allow_html=True)
-                    except: pass
+            for idx, art in enumerate(st.session_state.top_articles):
+                # --- 記事カードの開始 ---
+                with st.container():
+                    # HTMLの開始タグを注入
+                    st.markdown('<div class="article-card">', unsafe_allow_html=True)
                     
-                    # --- 画像表示の改良 ---
-                    img_url = art.get('img')
-                    if img_url:
-                        # 画像がある場合：CSSのobject-fitにより自動で16:9になります
-                        st.image(img_url, use_container_width=True)
+                    # タイヤ設定の計算
+                    try:
+                        prio = int(art.get('priority', 3))
+                    except:
+                        prio = 3
+                        
+                    if prio >= 5:
+                        tire_icon, tire_color, tire_label = "🔴", "#e10600", "SOFT (CRITICAL)"
+                    elif prio >= 3:
+                        tire_icon, tire_color, tire_label = "🟡", "#ffd200", "MEDIUM (IMPORTANT)"
                     else:
-                        # 画像がない場合：かっこいいNo Imageパネルを表示
-                        st.markdown('''
-                            <div class="no-image-box">
-                                <div style="font-size: 1.5rem; margin-bottom: 5px;">📷</div>
-                                NO TELEMETRY DATA
+                        tire_icon, tire_color, tire_label = "⚪", "#ffffff", "HARD (INTERESTING)"
+    
+                    # カード内部のカラム構成
+                    col_left, col_right = st.columns([1.5, 3.5])
+                    
+                    with col_left:
+                        # ファビコン
+                        try:
+                            domain = art['link'].split('/')[2]
+                            st.markdown(f'''
+                                <img src="https://www.google.com/s2/favicons?sz=64&domain={domain}" 
+                                     class="favicon-img">
+                            ''', unsafe_allow_html=True)
+                        except: pass
+                        
+                        # サムネイル画像
+                        img_url = art.get('img')
+                        if img_url:
+                            st.image(img_url, use_container_width=True)
+                        else:
+                            st.markdown('''
+                                <div class="no-image-box">
+                                    <div style="font-size: 1.5rem; margin-bottom: 5px;">📷</div>
+                                    NO TELEMETRY DATA
+                                </div>
+                            ''', unsafe_allow_html=True)
+    
+                        # タイヤマーク
+                        st.markdown(f"""
+                            <p style='color:{tire_color}; font-weight:bold; margin-top:8px; font-size:0.9rem; font-family:Orbitron;'>
+                                {tire_icon} {tire_label}
+                            </p>
+                            """, unsafe_allow_html=True)
+    
+                    with col_right:
+                        st.markdown(f"### {art['title']}")
+                        st.write(art.get('summary_short', ''))
+    
+                        # ボタンエリア
+                        st.markdown(f'''
+                            <div class="action-area">
+                                <a href="./?sel={idx}" target="_self" class="f1-btn" onclick="window.location.reload();">
+                                    🔍 ANALYSIS
+                                </a>
+                                <a href="{art["link"]}" target="_blank" class="f1-btn">
+                                    🔗 SOURCE
+                                </a>
                             </div>
                         ''', unsafe_allow_html=True)
-
-                    # タイヤマーク表示
-                    st.markdown(f"""
-                        <p style='color:{tire_color}; font-weight:bold; margin-top:8px; font-size:0.9rem; font-family:Orbitron;'>
-                            {tire_icon} {tire_label}
-                        </p>
-                        """, unsafe_allow_html=True)
-
-                with col_right:
-                    st.markdown(f"### {art['title']}")
-                    st.write(art.get('summary_short', ''))
-
-                    # ANALYSISとSOURCEを横並びで表示
-                    # href="./?sel={idx}" で自分自身のページに情報を送ります
-                    st.markdown(f'''
-                        <div class="action-area">
-                            <a href="./?sel={idx}" target="_self" class="f1-btn" onclick="window.location.reload();">
-                                🔍 ANALYSIS
-                            </a>
-                            <a href="{art["link"]}" target="_blank" class="f1-btn">
-                                🔗 SOURCE
-                            </a>
-                        </div>
-                    ''', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # HTMLの終了タグを注入（ここでカードが完結）
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                # カードごとの余白
                 st.write("")
 
 # --- 5. 画面表示：詳細分析画面 ---
