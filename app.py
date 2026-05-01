@@ -37,15 +37,32 @@ def apply_carbon_design():
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
-        /* ボタンのスタイル統一 */
-        .stButton > button {
+        /* 共通ボタンベース（st.button用と自作HTML用の両方に適用） */
+        .stButton > button, .custom-btn {
             background-color: #262730 !important;
             color: white !important;
             border: 1px solid #464b5d !important;
+            border-radius: 5px !important;
             height: 40px !important;
-            font-family: 'Orbitron', sans-serif !important;
-            font-size: 0.8rem !important;
             width: 100% !important;
+            font-family: 'Orbitron', sans-serif !important;
+            font-weight: 700 !important;
+            font-size: 0.8rem !important;
+            letter-spacing: 1px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important; /* なめらかな変化 */
+            text-decoration: none !important;
+        }
+
+        /* ホバー時の挙動を両方のボタンに適用 */
+        .stButton > button:hover, .custom-btn:hover {
+            border-color: #e10600 !important;
+            color: #e10600 !important;
+            background-color: #1e1f26 !important;
+            box-shadow: 0 0 10px rgba(225, 6, 0, 0.2) !important;
         }
 
         /* タイトルのアンダーライン */
@@ -56,32 +73,6 @@ def apply_carbon_design():
             letter-spacing: 3px;
             border-bottom: 3px solid #e10600;
             padding-bottom: 5px;
-        }
-
-        /* ANALYSISボタン（st.button）のスタイルをSOURCEボタンに強制的に寄せる */
-        div.stButton > button {
-            background-color: #262730 !important;
-            color: white !important;
-            border: 1px solid #464b5d !important;
-            border-radius: 5px !important; /* 角丸をSOURCEと合わせる */
-            height: 40px !important;
-            width: 100% !important;
-            
-            /* フォント設定をSOURCEボタンと完全に一致させる */
-            font-family: 'Orbitron', sans-serif !important;
-            font-weight: 700 !important; /* 太字に設定 */
-            font-size: 0.8rem !important;
-            letter-spacing: 1px !important; /* 文字間隔を少し広げてレーシーに */
-            
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-
-        /* ホバー（マウスを乗せた時）の挙動も統一 */
-        div.stButton > button:hover {
-            border-color: #e10600 !important; /* F1レッドの枠線 */
-            color: #e10600 !important;
         }
 
         /* フォント設定 */
@@ -313,24 +304,17 @@ def show_top_page():
                     
                     btn_col1, btn_col2 = st.columns(2)
                     with btn_col1:
-                        # ANALYSISボタン（CSSでフォントが上書きされます）
+                        # Streamlit標準ボタン（CSSの .stButton > button が適用される）
                         if st.button(f"🔍 ANALYSIS", key=f"btn_ana_{idx}", use_container_width=True):
                             st.session_state.selected_article = art
                             st.session_state.page = "analysis"
                             st.rerun()
                             
                     with btn_col2:
-                        # SOURCEボタン（HTML直接記述）
-                        # font-weight: 700 を追加してさらに力強く
+                        # 自作HTMLボタン（クラス名 custom-btn を指定してスタイルを統一）
                         st.markdown(f'''
                             <a href="{art["link"]}" target="_blank" style="text-decoration:none;">
-                                <button style="
-                                    width:100%; height:40px; background-color:#262730; color:white; 
-                                    border:1px solid #464b5d; border-radius:5px; cursor:pointer;
-                                    font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 0.8rem;
-                                    display: flex; align-items: center; justify-content: center;
-                                    letter-spacing: 1px;
-                                ">🔗 SOURCE</button>
+                                <div class="custom-btn">🔗 SOURCE</div>
                             </a>
                         ''', unsafe_allow_html=True)
                 st.write("")
