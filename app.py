@@ -316,7 +316,11 @@ def show_top_page():
                     else:
                         st.image("https://via.placeholder.com/300x160/161920/ffffff?text=F1+NEWS", use_container_width=True)
                     
-                    st.markdown(f"<p style='color:{tire_color}; font-weight:bold; margin-top:8px; font-size:1rem; font-family:Orbitron;'>● {tire_label}</p>", unsafe_allow_html=True)
+                    st.markdown(f"""
+                        <p style='color:{tire_color}; font-weight:bold; margin-top:8px; font-size:0.9rem; font-family:Orbitron;'>
+                            {tire_icon} {tire_label}
+                        </p>
+                        """, unsafe_allow_html=True)
 
                 with col_right:
                     st.markdown(f"### {art['title']}")
