@@ -130,22 +130,33 @@ def apply_carbon_design():
 
 
 
-def handle_click():
-    # URLの末尾に ?sel=数字 が付いているかチェック
-    if "sel" in st.query_params:
-        idx = int(st.query_params["sel"])
-        # パラメータを消してリロードループを防ぐ
-        st.query_params.clear()
-        
-        # 該当する記事をセットして遷移
-        articles = st.session_state.get('top_articles', [])
-        if articles and len(articles) > idx:
-            st.session_state.selected_article = articles[idx]
-            st.session_state.page = "analysis"
-            st.rerun()
+# --- 修正版：クリック判定ロジック ---
+def handle_navigation():
+    # URLパラメータ ?sel=数字 を取得
+    params = st.query_params
+    
+    if "sel" in params:
+        try:
+            # パラメータからインデックスを取得
+            idx = int(params["sel"])
+            
+            # リロードループを防ぐために、即座にパラメータをクリア
+            # ※ここでクリアする前にセッション状態を更新するのがコツです
+            st.query_params.clear()
+            
+            # 記事データが存在することを確認
+            if "top_articles" in st.session_state and len(st.session_state.top_articles) > idx:
+                # 1. 選択された記事を保存
+                st.session_state.selected_article = st.session_state.top_articles[idx]
+                # 2. ページフラグを analysis に切り替え
+                st.session_state.page = "analysis"
+                # 3. 強制再描画
+                st.rerun()
+        except (ValueError, IndexError, TypeError):
+            pass
 
-# ページ表示の直前に実行
-handle_click()
+# アプリのメイン処理の冒頭で必ず実行する
+handle_navigation()
 
 # --- CSS適用 ---
 apply_carbon_design()
