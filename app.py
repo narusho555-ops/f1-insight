@@ -68,21 +68,32 @@ def apply_carbon_design():
         /* 4. 透明ボタンの制御 (ここが重要) */
         /* button-wrapperの中にあるボタンだけを透明にして、自作ボタンの上に重ねる */
         .button-wrapper {
-            position: relative;
+            display: grid; /* グリッドレイアウトを適用 */
+            place-items: stretch;
             height: 40px;
             width: 100%;
         }
 
+        /* 自作ボタンと標準ボタンを同じセルに配置 */
+        .button-wrapper > * {
+            grid-area: 1 / 1; 
+        }
+
+        /* 透明にする標準ボタンの設定 */
         .button-wrapper .stButton > button {
             opacity: 0 !important;
-            position: absolute !important;
-            top: 0;
-            left: 0;
             width: 100% !important;
             height: 40px !important;
-            z-index: 10 !important;
+            z-index: 10 !important; /* 自作ボタンより上に配置 */
             cursor: pointer !important;
             border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        /* 自作ボタンの設定（ボタンの見た目） */
+        .button-wrapper .f1-btn {
+            z-index: 5; /* 透明ボタンの下に配置 */
         }
 
         /* 更新ボタンなど、wrapperの外にある標準ボタンは見せる */
@@ -373,17 +384,15 @@ def show_top_page():
                     
                     btn_col1, btn_col2 = st.columns(2)
                     with btn_col1:
-                        # --- ANALYSISボタン：自作HTMLの上に透明なボタンを重ねる ---
-                        st.markdown(f'''
-                            <div class="button-wrapper">
-                                <div class="f1-btn">🔍 ANALYSIS</div>
-                            </div>
-                        ''', unsafe_allow_html=True)
-                        # このボタンは透明で見えませんが、クリック判定だけを担います
-                        if st.button(" ", key=f"hidden_ana_{idx}"):
+                        # まとめて一つのブロックとして記述
+                        st.markdown('<div class="button-wrapper">', unsafe_allow_html=True)
+                        st.markdown('<div class="f1-btn">🔍 ANALYSIS</div>', unsafe_allow_html=True)
+                        # keyには必ず一意のidxを含める
+                        if st.button(" ", key=f"hidden_btn_{idx}"):
                             st.session_state.selected_article = art
                             st.session_state.page = "analysis"
                             st.rerun()
+                        st.markdown('</div>', unsafe_allow_html=True)
                             
                     with btn_col2:
                         # --- SOURCEボタン：自作HTML ---
