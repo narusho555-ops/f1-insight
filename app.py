@@ -75,11 +75,21 @@ def apply_carbon_design():
             cursor: pointer !important;
         }
         
-        /* ボタンが配置される親要素の相対位置固定 */
-        .button-wrapper {
-            position: relative;
-            height: 40px;
-            width: 100%;
+        .button-wrapper .stButton > button {
+            opacity: 0 !important;
+            position: absolute !important;
+            z-index: 10 !important;
+            height: 40px !important;
+            width: 100% !important;
+            cursor: pointer !important;
+            top: 0;
+            left: 0;
+        }
+
+        /* ページ上部の更新ボタンなどは透明にしない（通常表示） */
+        div:not(.button-wrapper) > .stButton > button {
+            opacity: 1 !important;
+            /* 必要であれば更新ボタン用のスタイルをここに追加できます */
         }
 
         /* タイトルのアンダーライン */
