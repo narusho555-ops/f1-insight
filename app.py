@@ -251,7 +251,11 @@ def show_top_page():
     if st.session_state.top_articles:
         for idx, art in enumerate(st.session_state.top_articles):
             # タイヤ設定
-            prio = art.get('priority', 3)
+            try:
+                prio = int(art.get('priority', 3))
+            except:
+                prio = 3
+                
             if prio >= 5:
                 tire_icon, tire_color, tire_label = "🔴", "#e10600", "SOFT (CRITICAL)"
             elif prio >= 3:
