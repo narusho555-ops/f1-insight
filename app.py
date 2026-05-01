@@ -155,9 +155,6 @@ def handle_navigation():
         except (ValueError, IndexError, TypeError):
             pass
 
-# アプリのメイン処理の冒頭で必ず実行する
-handle_navigation()
-
 # --- CSS適用 ---
 apply_carbon_design()
 
@@ -393,7 +390,7 @@ def show_top_page():
                     # href="./?sel={idx}" で自分自身のページに情報を送ります
                     st.markdown(f'''
                         <div class="action-area">
-                            <a href="./?sel={idx}" target="_self" class="f1-btn">
+                            <a href="./?sel={idx}" target="_self" class="f1-btn" onclick="window.location.reload();">
                                 🔍 ANALYSIS
                             </a>
                             <a href="{art["link"]}" target="_blank" class="f1-btn">
@@ -428,6 +425,9 @@ def show_analysis_page():
 
 # --- メイン制御 ---
 # DEBUG_MODEに関わらず、ページ管理ロジックは共通
+# アプリのメイン処理の冒頭で必ず実行する
+handle_navigation()
+
 if st.session_state.page == 'top':
     show_top_page()
 else:
