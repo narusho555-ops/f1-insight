@@ -92,6 +92,32 @@ def apply_carbon_design():
             padding-bottom: 5px;
         }
 
+        /* 画像エリアのサイズを16:9に固定してトリミング */
+        .stImage > img {
+            width: 100% !important;
+            height: 160px !important; /* 高さを固定 */
+            object-fit: cover !important; /* 縦横比を維持して中央で切り抜き */
+            border-radius: 4px;
+            border: 1px solid #343a40;
+        }
+
+        /* 画像がない時の「No Image」ボックス用スタイル */
+        .no-image-box {
+            width: 100%;
+            height: 160px;
+            background: linear-gradient(135deg, #1e2129 25%, #161920 100%);
+            border: 1px dashed #464b5d;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #464b5d;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+        }
+
         /* フォント設定 */
         p, span, label {
             color: #e0e0e0 !important;
@@ -311,11 +337,21 @@ def show_top_page():
                         st.markdown(f'<img src="https://www.google.com/s2/favicons?sz=64&domain={domain}" width="20" style="margin-bottom:5px;">', unsafe_allow_html=True)
                     except: pass
                     
-                    if art.get('img'):
-                        st.image(art['img'], use_container_width=True)
+                    # --- 画像表示の改良 ---
+                    img_url = art.get('img')
+                    if img_url:
+                        # 画像がある場合：CSSのobject-fitにより自動で16:9になります
+                        st.image(img_url, use_container_width=True)
                     else:
-                        st.image("https://via.placeholder.com/300x160/161920/ffffff?text=F1+NEWS", use_container_width=True)
-                    
+                        # 画像がない場合：かっこいいNo Imageパネルを表示
+                        st.markdown('''
+                            <div class="no-image-box">
+                                <div style="font-size: 1.5rem; margin-bottom: 5px;">📷</div>
+                                NO TELEMETRY DATA
+                            </div>
+                        ''', unsafe_allow_html=True)
+
+                    # タイヤマーク表示
                     st.markdown(f"""
                         <p style='color:{tire_color}; font-weight:bold; margin-top:8px; font-size:0.9rem; font-family:Orbitron;'>
                             {tire_icon} {tire_label}
