@@ -136,24 +136,22 @@ def apply_carbon_design():
             padding: 2px;
         }
         
-        /* 記事カード専用のクラスを指定 */
+        /* 記事カードの枠指定 */
         div.article-card {
             background: linear-gradient(135deg, rgba(30, 33, 41, 0.95) 0%, rgba(15, 17, 22, 0.98) 100%);
-            border-left: 5px solid #e10600; /* ここが例の赤いライン */
+            border-left: 5px solid #e10600;
             border-top: 1px solid #343a40;
             border-right: 1px solid #343a40;
             border-bottom: 1px solid #343a40;
             border-radius: 0px 8px 8px 0px;
             padding: 20px;
-            margin-bottom: 25px;
-            box-shadow: 10px 0px 20px rgba(0,0,0,0.5);
-            transition: all 0.2s ease;
+            margin-bottom: 20px;
+            box-shadow: 10px 10px 20px rgba(0,0,0,0.5);
         }
-
-        /* ホバー時の挙動 */
+        /* ホバー時はラインの発光のみ */
         div.article-card:hover {
             border-left: 5px solid #ff1e1e;
-            transform: translateX(5px);
+            box-shadow: 0px 0px 15px rgba(225, 6, 0, 0.2);
         }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
@@ -398,78 +396,52 @@ def show_top_page():
     st.write("")
 
     if st.session_state.top_articles:
-            for idx, art in enumerate(st.session_state.top_articles):
-                # --- 記事カードの開始 ---
-                with st.container():
-                    # HTMLの開始タグを注入
-                    st.markdown('<div class="article-card">', unsafe_allow_html=True)
-                    
-                    # タイヤ設定の計算
-                    try:
-                        prio = int(art.get('priority', 3))
-                    except:
-                        prio = 3
-                        
-                    if prio >= 5:
-                        tire_icon, tire_color, tire_label = "🔴", "#e10600", "SOFT (CRITICAL)"
-                    elif prio >= 3:
-                        tire_icon, tire_color, tire_label = "🟡", "#ffd200", "MEDIUM (IMPORTANT)"
-                    else:
-                        tire_icon, tire_color, tire_label = "⚪", "#ffffff", "HARD (INTERESTING)"
-    
-                    # カード内部のカラム構成
-                    col_left, col_right = st.columns([1.5, 3.5])
-                    
-                    with col_left:
-                        # ファビコン
-                        try:
-                            domain = art['link'].split('/')[2]
-                            st.markdown(f'''
-                                <img src="https://www.google.com/s2/favicons?sz=64&domain={domain}" 
-                                     class="favicon-img">
-                            ''', unsafe_allow_html=True)
-                        except: pass
-                        
-                        # サムネイル画像
-                        img_url = art.get('img')
-                        if img_url:
-                            st.image(img_url, use_container_width=True)
-                        else:
-                            st.markdown('''
-                                <div class="no-image-box">
-                                    <div style="font-size: 1.5rem; margin-bottom: 5px;">📷</div>
-                                    NO TELEMETRY DATA
-                                </div>
-                            ''', unsafe_allow_html=True)
-    
-                        # タイヤマーク
-                        st.markdown(f"""
-                            <p style='color:{tire_color}; font-weight:bold; margin-top:8px; font-size:0.9rem; font-family:Orbitron;'>
-                                {tire_icon} {tire_label}
-                            </p>
-                            """, unsafe_allow_html=True)
-    
-                    with col_right:
-                        st.markdown(f"### {art['title']}")
-                        st.write(art.get('summary_short', ''))
-    
-                        # ボタンエリア
-                        st.markdown(f'''
-                            <div class="action-area">
-                                <a href="./?sel={idx}" target="_self" class="f1-btn" onclick="window.location.reload();">
-                                    🔍 ANALYSIS
-                                </a>
-                                <a href="{art["link"]}" target="_blank" class="f1-btn">
-                                    🔗 SOURCE
-                                </a>
-                            </div>
-                        ''', unsafe_allow_html=True)
-                    
-                    # HTMLの終了タグを注入（ここでカードが完結）
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                # カードごとの余白
-                st.write("")
+        for idx, art in enumerate(st.session_state.top_articles):
+            # タイヤ設定の計算
+            try:
+                prio = int(art.get('priority', 3))
+            except:
+                prio = 3
+            
+            tire_info = {
+                5: ("🔴", "#e10600", "SOFT (CRITICAL)"),
+                4: ("🔴", "#e10600", "SOFT (CRITICAL)"),
+                3: ("🟡", "#ffd200", "MEDIUM (IMPORTANT)"),
+            }.get(prio, ("⚪", "#ffffff", "HARD (INTERESTING)"))
+            
+            tire_icon, tire_color, tire_label = tire_info
+            domain = art['link'].split('/')[2] if '/' in art['link'] else ""
+            img_url = art.get('img', '')
+
+            # --- カード全体のHTML構築 ---
+            # 画像がある場合とない場合でHTMLを分岐
+            img_html = f'<img src="{img_url}" style="width:100%; border-radius:4px; margin-top:10px;">' if img_url else \
+                       '<div class="no-image-box" style="margin-top:10px;">📷 NO TELEMETRY DATA</div>'
+
+            card_html = f'''
+            <div class="article-card">
+                <div style="display: flex; gap: 20px;">
+                    <!-- 左側：ファビコン・画像・タイヤ -->
+                    <div style="flex: 1.5; min-width: 0;">
+                        <img src="https://www.google.com/s2/favicons?sz=64&domain={domain}" class="favicon-img">
+                        {img_html}
+                        <p style="color:{tire_color}; font-weight:bold; margin-top:12px; font-size:0.85rem; font-family:Orbitron;">
+                            {tire_icon} {tire_label}
+                        </p>
+                    </div>
+                    <!-- 右側：テキスト・ボタン -->
+                    <div style="flex: 3.5; min-width: 0;">
+                        <h3 style="margin-top:0; color:white; font-size:1.2rem;">{art['title']}</h3>
+                        <p style="color:#bdc3c7; font-size:0.9rem; line-height:1.5;">{art.get('summary_short', '')}</p>
+                        <div class="action-area" style="margin-top:15px;">
+                            <a href="./?sel={idx}" target="_self" class="f1-btn" style="text-decoration:none;">🔍 ANALYSIS</a>
+                            <a href="{art['link']}" target="_blank" class="f1-btn" style="text-decoration:none;">🔗 SOURCE</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            '''
+            st.markdown(card_html, unsafe_allow_html=True)
 
 # --- 5. 画面表示：詳細分析画面 ---
 def show_analysis_page():
