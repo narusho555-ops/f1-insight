@@ -15,7 +15,7 @@ DEBUG_MODE = True
 def apply_carbon_design():
     st.markdown("""
         <style>
-        /* 1. 全体背景 */
+        /* 1. 全体背景（カーボン調） */
         .stApp {
             background-color: #0e1117;
             background-image: 
@@ -26,7 +26,7 @@ def apply_carbon_design():
             background-size: 4px 4px;
         }
 
-        /* 2. 記事カード */
+        /* 2. 記事カード全体 */
         [data-testid="stVerticalBlock"] > div:has(div.stColumns) {
             background: rgba(30, 33, 41, 0.9);
             border: 1px solid #343a40;
@@ -37,14 +37,22 @@ def apply_carbon_design():
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
-        /* 3. 自作F1ボタン共通デザイン (ANALYSIS & SOURCE) */
+        /* 3. ボタンエリアのレイアウト固定（ズレ防止） */
+        .action-area {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        /* 4. 自作F1ボタン共通デザイン */
         .f1-btn {
+            flex: 1; /* ANALYSISとSOURCEを均等幅に */
             background-color: #262730 !important;
             color: white !important;
             border: 1px solid #464b5d !important;
             border-radius: 5px !important;
             height: 40px;
-            width: 100%;
             font-family: 'Orbitron', sans-serif !important;
             font-weight: 700 !important;
             font-size: 0.8rem !important;
@@ -54,58 +62,30 @@ def apply_carbon_design():
             justify-content: center;
             transition: all 0.2s ease;
             cursor: pointer;
-            text-decoration: none;
-            box-sizing: border-box;
+            text-decoration: none !important; /* リンクの下線を消す */
         }
 
-        /* ホバー挙動：枠と文字を赤く */
         .f1-btn:hover {
             border-color: #e10600 !important;
             color: #e10600 !important;
             box-shadow: 0 0 10px rgba(225, 6, 0, 0.3);
+            text-decoration: none !important;
         }
 
-        /* 4. 透明ボタンの制御 (ここが重要) */
-        /* button-wrapperの中にあるボタンだけを透明にして、自作ボタンの上に重ねる */
-        .button-wrapper {
-            display: grid; /* グリッドレイアウトを適用 */
-            place-items: stretch;
-            height: 40px;
-            width: 100%;
-        }
-
-        /* 自作ボタンと標準ボタンを同じセルに配置 */
-        .button-wrapper > * {
-            grid-area: 1 / 1; 
-        }
-
-        /* 透明にする標準ボタンの設定 */
-        .button-wrapper .stButton > button {
-            opacity: 0 !important;
-            width: 100% !important;
-            height: 40px !important;
-            z-index: 10 !important; /* 自作ボタンより上に配置 */
-            cursor: pointer !important;
-            border: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
-        }
-
-        /* 自作ボタンの設定（ボタンの見た目） */
-        .button-wrapper .f1-btn {
-            z-index: 5; /* 透明ボタンの下に配置 */
-        }
-
-        /* 更新ボタンなど、wrapperの外にある標準ボタンは見せる */
+        /* 5. ページ上部の「更新ボタン」用スタイル（標準ボタンを生かす） */
         div.stButton > button {
-            opacity: 1;
-            font-family: 'Orbitron', sans-serif;
             background-color: #262730;
             color: white;
             border: 1px solid #464b5d;
+            font-family: 'Orbitron', sans-serif;
+            transition: 0.3s;
+        }
+        div.stButton > button:hover {
+            border-color: #e10600;
+            color: #e10600;
         }
 
-        /* 5. タイトル設定 */
+        /* 6. タイトル・テキスト設定 */
         h1 {
             font-family: 'Orbitron', sans-serif;
             color: #ffffff;
@@ -114,8 +94,12 @@ def apply_carbon_design():
             border-bottom: 3px solid #e10600;
             padding-bottom: 5px;
         }
+        p, span, label {
+            color: #e0e0e0 !important;
+            line-height: 1.5 !important;
+        }
 
-        /* 6. 画像エリアの固定（16:9） */
+        /* 7. 画像エリア（16:9固定） */
         .stImage > img {
             width: 100% !important;
             height: 160px !important;
@@ -124,7 +108,7 @@ def apply_carbon_design():
             border: 1px solid #343a40;
         }
 
-        /* 7. No Imageパネル */
+        /* 8. No Imageパネル */
         .no-image-box {
             width: 100%;
             height: 160px;
@@ -140,18 +124,29 @@ def apply_carbon_design():
             font-size: 0.7rem;
             letter-spacing: 2px;
         }
-
-        /* 8. テキスト設定 */
-        p, span, label {
-            color: #e0e0e0 !important;
-            line-height: 1.5 !important;
-        }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
 
 # --- CSS適用 ---
 apply_carbon_design()
+
+def handle_click():
+    # URLの末尾に ?sel=数字 が付いているかチェック
+    if "sel" in st.query_params:
+        idx = int(st.query_params["sel"])
+        # パラメータを消してリロードループを防ぐ
+        st.query_params.clear()
+        
+        # 該当する記事をセットして遷移
+        articles = st.session_state.get('top_articles', [])
+        if articles and len(articles) > idx:
+            st.session_state.selected_article = articles[idx]
+            st.session_state.page = "analysis"
+            st.rerun()
+
+# ページ表示の直前に実行
+handle_click()
 
 # --- 1. 基本設定 ---
 # DEBUG_MODEに関わらず、APIキーの取得は試みる
@@ -380,27 +375,19 @@ def show_top_page():
                 with col_right:
                     st.markdown(f"### {art['title']}")
                     st.write(art.get('summary_short', ''))
-                    st.write("") 
-                    
-                    btn_col1, btn_col2 = st.columns(2)
-                    with btn_col1:
-                        # まとめて一つのブロックとして記述
-                        st.markdown('<div class="button-wrapper">', unsafe_allow_html=True)
-                        st.markdown('<div class="f1-btn">🔍 ANALYSIS</div>', unsafe_allow_html=True)
-                        # keyには必ず一意のidxを含める
-                        if st.button(" ", key=f"hidden_btn_{idx}"):
-                            st.session_state.selected_article = art
-                            st.session_state.page = "analysis"
-                            st.rerun()
-                        st.markdown('</div>', unsafe_allow_html=True)
-                            
-                    with btn_col2:
-                        # --- SOURCEボタン：自作HTML ---
-                        st.markdown(f'''
-                            <a href="{art["link"]}" target="_blank" style="text-decoration:none;">
-                                <div class="f1-btn">🔗 SOURCE</div>
+
+                    # ANALYSISとSOURCEを横並びで表示
+                    # href="./?sel={idx}" で自分自身のページに情報を送ります
+                    st.markdown(f'''
+                        <div class="action-area">
+                            <a href="./?sel={idx}" target="_self" class="f1-btn">
+                                🔍 ANALYSIS
                             </a>
-                        ''', unsafe_allow_html=True)
+                            <a href="{art["link"]}" target="_blank" class="f1-btn">
+                                🔗 SOURCE
+                            </a>
+                        </div>
+                    ''', unsafe_allow_html=True)
                 st.write("")
 
 # --- 5. 画面表示：詳細分析画面 ---
