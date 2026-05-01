@@ -166,6 +166,26 @@ def handle_navigation():
         except (ValueError, IndexError, TypeError):
             pass
 
+# 遷移ロジックガードの強化
+def handle_navigation():
+    params = st.query_params
+    if "sel" in params:
+        try:
+            idx = int(params["sel"])
+            # パラメータは真っ先に消す（ループ防止）
+            st.query_params.clear()
+            
+            # セッション内の記事リストが空でないか、インデックスが範囲内か厳格にチェック
+            if st.session_state.get('top_articles') and 0 <= idx < len(st.session_state.top_articles):
+                st.session_state.selected_article = st.session_state.top_articles[idx]
+                st.session_state.page = "analysis"
+                st.rerun()
+            else:
+                # 記事が見つからない場合はメッセージを出してトップに留める
+                st.warning("Telemetry data lost. Please refresh news.")
+        except Exception:
+            pass
+            
 # --- CSS適用 ---
 apply_carbon_design()
 
@@ -304,7 +324,8 @@ def refresh_news():
 
     # 2. AIへのプロンプト
     prompt = f"""
-    F1ニュース候補から重要なTop5を厳選し、以下のJSON形式(配列)のみを返せ。
+    Return ONLY a JSON array. Do not include any conversational text or explanations.
+    F1ニュース候補から重要なTop5を厳選し、以下の形式で返せ。
     [
       {{"title": "...", "link": "...", "summary_short": "50文字要約", "priority": 1-5}}
     ]
@@ -314,21 +335,30 @@ def refresh_news():
     response_text = ask_gemini(prompt)
     
     if response_text:
+        # refresh_news() 内の tryブロックを以下のように修正
         try:
-            # JSONクリーニングとパース
-            clean_json = response_text.replace('```json', '').replace('```', '').strip()
-            parsed_data = json.loads(clean_json)
+            # 1. ```json と ``` を削除し、さらに前後の空白を消す
+            clean_json = response_text.strip()
+            if "```" in clean_json:
+                clean_json = clean_json.split("```")[1]
+                if clean_json.startswith("json"):
+                    clean_json = clean_json[4:]
+            
+            parsed_data = json.loads(clean_json.strip())
             
             if isinstance(parsed_data, list):
-                # 画像の紐付け
+                # 画像の紐付け処理
                 for art in parsed_data:
                     original = next((x for x in all_entries if x['title'] == art['title']), None)
-                    if original: art['img'] = original.get('img')
+                    if original: 
+                        art['img'] = original.get('img')
+                    # priorityが文字列で返ってきた場合の保険
+                    art['priority'] = int(art.get('priority', 3))
                 
                 st.session_state.top_articles = parsed_data
                 status.empty()
                 st.success("最新ニュースを更新しました！")
-                st.rerun() 
+                st.rerun()
         except:
             st.error("AIのレスポンス形式が不正です。")
     else:
