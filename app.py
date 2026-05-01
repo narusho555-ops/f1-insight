@@ -135,6 +135,26 @@ def apply_carbon_design():
             background-color: rgba(255,255,255,0.05); /* 薄い背景をつけて視認性確保 */
             padding: 2px;
         }
+        
+        /* 記事カード専用のクラスを指定 */
+        div.article-card {
+            background: linear-gradient(135deg, rgba(30, 33, 41, 0.95) 0%, rgba(15, 17, 22, 0.98) 100%);
+            border-left: 5px solid #e10600; /* ここが例の赤いライン */
+            border-top: 1px solid #343a40;
+            border-right: 1px solid #343a40;
+            border-bottom: 1px solid #343a40;
+            border-radius: 0px 8px 8px 0px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 10px 0px 20px rgba(0,0,0,0.5);
+            transition: all 0.2s ease;
+        }
+
+        /* ホバー時の挙動 */
+        div.article-card:hover {
+            border-left: 5px solid #ff1e1e;
+            transform: translateX(5px);
+        }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
@@ -379,6 +399,11 @@ def show_top_page():
 
     if st.session_state.top_articles:
         for idx, art in enumerate(st.session_state.top_articles):
+            # カード全体を1つのコンテナに入れ、CSSを適用させる
+        with st.container():
+            # ここでHTMLのクラス名を注入（Streamlitの隠し仕様的なハックですが、確実です）
+            st.markdown('<div class="article-card">', unsafe_allow_html=True)
+            
             # タイヤ設定
             try:
                 prio = int(art.get('priority', 3))
@@ -442,6 +467,7 @@ def show_top_page():
                             </a>
                         </div>
                     ''', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
                 st.write("")
 
 # --- 5. 画面表示：詳細分析画面 ---
