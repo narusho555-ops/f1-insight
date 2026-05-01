@@ -253,11 +253,11 @@ def show_top_page():
             # タイヤ設定
             prio = art.get('priority', 3)
             if prio >= 5:
-                tire_color, tire_label = "#e10600", "SOFT"
+                tire_icon, tire_color, tire_label = "🔴", "#e10600", "SOFT (CRITICAL)"
             elif prio >= 3:
-                tire_color, tire_label = "#ffd200", "MEDIUM"
+                tire_icon, tire_color, tire_label = "🟡", "#ffd200", "MEDIUM (IMPORTANT)"
             else:
-                tire_color, tire_label = "#ffffff", "HARD"
+                tire_icon, tire_color, tire_label = "⚪", "#ffffff", "HARD (INTERESTING)"
 
             with st.container():
                 col_left, col_right = st.columns([1.5, 3.5])
