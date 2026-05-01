@@ -4,6 +4,14 @@ import requests
 import json
 import time
 
+# ==========================================
+# ★★★ システム設定スイッチ ★★★
+# ==========================================
+# True : ダミーデータを使用（API消費なし、画面調整用）
+# False: 本番モード（実際のRSS・AI通信を実行）
+DEBUG_MODE = True 
+# ==========================================
+
 def apply_carbon_design():
     st.markdown("""
         <style>
@@ -18,25 +26,26 @@ def apply_carbon_design():
             background-size: 4px 4px;
         }
 
-        /* 記事カード：二重枠を防ぎ、1つの綺麗な枠に集約 */
+        /* 記事カード */
         [data-testid="stVerticalBlock"] > div:has(div.stColumns) {
             background: rgba(30, 33, 41, 0.9);
-            border: 1px solid #343a40; /* 全体を囲う細い枠 */
-            border-left: 5px solid #e10600; /* 左側の赤いアクセントライン */
+            border: 1px solid #343a40;
+            border-left: 5px solid #e10600;
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
-        /* ボタンのスタイル統一（左右対称にするため） */
+        /* ボタンのスタイル統一 */
         .stButton > button {
-            width: 100% !important;
-            border-radius: 5px !important;
-            height: 42px !important;
+            background-color: #262730 !important;
+            color: white !important;
+            border: 1px solid #464b5d !important;
+            height: 40px !important;
             font-family: 'Orbitron', sans-serif !important;
             font-size: 0.8rem !important;
-            transition: 0.3s !important;
+            width: 100% !important;
         }
 
         /* タイトルのアンダーライン */
@@ -58,15 +67,20 @@ def apply_carbon_design():
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
 
-# --- ここで即座に実行 ---
+# --- CSS適用 ---
 apply_carbon_design()
 
-# --- 1. 基本設定（モデルを2.5-flashに指定） ---
-API_KEY = st.secrets["GEMINI_API_KEY"]
+# --- 1. 基本設定 ---
+# DEBUG_MODEに関わらず、APIキーの取得は試みる
+try:
+    API_KEY = st.secrets["GEMINI_API_KEY"]
+except:
+    API_KEY = "DUMMY_KEY_FOR_DEBUG" # キーがなくてもデバッグモードは動くように
+
 MODEL_NAME = "gemini-2.5-flash"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL_NAME}:generateContent?key={API_KEY}"
 
-
+# 本番用RSSソース（DEBUG_MODE=Falseの時のみ使用）
 # 信頼できるソースリスト
 RSS_SOURCES = [
     "https://www.formula1.com/en/latest/all.xml",    # 公式
@@ -87,76 +101,109 @@ if 'selected_article' not in st.session_state:
 if 'top_articles' not in st.session_state:
     st.session_state.top_articles = []
 
-# --- 2. AIへのリクエスト関数（リトライ機能付き） ---
+# ==========================================
+# 【分岐】初期データの流し込み
+# ==========================================
+if not st.session_state.top_articles:
+    if DEBUG_MODE:
+        # --- 🔧デバッグ用：起動時に固定のダミーデータを注入 ---
+        st.session_state.top_articles = [
+            {
+                "title": "【Debug】Ferrari's Major Update for Imola Revealed",
+                "summary_short": "サイドポンツーンを刷新し、レッドブル型のインレットを採用。風洞データでは0.3秒の改善を示唆。",
+                "link": "https://www.formula1.com",
+                "img": "https://images.unsplash.com/photo-1532906623266-40759c7b233c?q=80&w=800&auto=format&fit=crop",
+                "priority": 5
+            },
+            {
+                "title": "【Debug】Yuki Tsunoda Secures P7 in Intense Midfield Battle",
+                "summary_short": "タイヤマネジメントを完璧にこなし、ハミルトンの猛追を15周にわたって凌ぎ切る力走を見せた。",
+                "link": "https://jp.motorsport.com",
+                "img": "https://images.unsplash.com/photo-1502675135487-e971002a6adb?q=80&w=800&auto=format&fit=crop",
+                "priority": 4
+            }
+        ]
+    else:
+        # --- 🚀本番用：最初は空、ボタンを押して取得させる ---
+        pass
+
+# --- 2. AIへのリクエスト関数 ---
 def ask_gemini(prompt):
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
-    headers = {"Content-Type": "application/json"}
-    
-    max_retries = 3
-    retry_delay = 2
-    
-    for i in range(max_retries):
+    if DEBUG_MODE:
+        # --- 🔧デバッグ用：API通信をせず、固定の分析結果を返す ---
+        # (Deep Analysisプロンプトが来た場合を想定)
+        if " Deep Analysis" in prompt or "分析" in prompt:
+            return """
+### 1. ニュースの要約 (Debug Mode)
+フェラーリが次戦イモラGPで大規模なアップデートを投入。サイドポンツーンのデザインを根本から見直し、空力効率を最大化させることが狙いです。
+
+### 2. 今後起こりそうなこと
+*   レッドブルとのタイム差が0.2秒圏内に縮小する可能性。
+
+### 3. 面白トリビア
+イモラはフェラーリの聖地。ここでの失敗は許されません。
+            """
+        return "Debug mode: AI response stub."
+        
+    else:
+        # --- 🚀本番用：実際のGemini APIと通信 ---
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        headers = {"Content-Type": "application/json"}
         try:
             res = requests.post(URL, headers=headers, data=json.dumps(payload))
             if res.status_code == 200:
-                text = res.json()['candidates'][0]['content']['parts'][0]['text']
-                return text
-            elif res.status_code == 503:
-                st.warning(f"サーバー混雑中...再試行します ({i+1}/{max_retries})")
-                time.sleep(retry_delay)
-                retry_delay *= 2
-                continue
+                return res.json()['candidates'][0]['content']['parts'][0]['text']
             else:
-                st.error(f"APIエラー ({res.status_code}): {res.text}")
-                return None
+                st.error(f"APIエラー: {res.status_code}")
         except Exception as e:
             st.error(f"通信エラー: {e}")
-            return None
-    return None
+        return None
 
 # --- 3. ロジック：ニュース取得とTop5選別 ---
 def refresh_news():
+    if DEBUG_MODE:
+        # --- 🔧デバッグ用：何もしない（API消費を防ぐ） ---
+        st.info("🔧 デバッグモード：実際の更新は行いません。")
+        time.sleep(1)
+        st.rerun()
+        return
+
+    # --- 🚀本番用：RSS取得とAI選別の本来のロジック ---
+    status = st.empty()
+    status.info("🔄 ニュースを収集中...")
+    
     all_entries = []
     seen_titles = set()
     
-    status = st.empty() 
-    status.info("🔄 8つの専門ソースから最新ニュースを収集中...")
-    
-    # 1. ニュース収集（画像URLも一緒に保持しておく）
+    # 1. ニュース収集
     for url in RSS_SOURCES:
         try:
             feed = feedparser.parse(url)
             for entry in feed.entries[:3]:
-                # 画像URLの抽出試行
+                # 画像抽出ロジック（簡易版）
                 img_url = None
-                if 'media_content' in entry:
-                    img_url = entry.media_content[0]['url']
-                elif 'media_thumbnail' in entry:
-                    img_url = entry.media_thumbnail[0]['url']
+                if 'media_content' in entry: img_url = entry.media_content[0]['url']
                 elif 'links' in entry:
                     for link in entry.links:
-                        if 'image' in link.get('type', ''):
-                            img_url = link.href
+                        if 'image' in link.get('type', ''): img_url = link.href
 
                 title_stub = entry.title[:15].lower()
                 if title_stub not in seen_titles:
                     all_entries.append({
                         "title": entry.title, 
                         "link": entry.link,
-                        "img": img_url # ここで一旦全候補の画像を持っておく
+                        "img": img_url
                     })
                     seen_titles.add(title_stub)
-        except Exception as e:
-            st.warning(f"ソース取得エラー: {e}")
+        except: pass
 
     if not all_entries:
-        status.empty()
-        st.error("記事を取得できませんでした。")
+        status.error("記事を取得できませんでした。")
         return
 
     status.write(f"✅ 候補{len(all_entries)}件。AIによるTop5選別中...")
 
-    # 2. AIへのプロンプト（JSON形式を厳守）
+    # 2. AIへのプロンプト
     prompt = f"""
     F1ニュース候補から重要なTop5を厳選し、以下のJSON形式(配列)のみを返せ。
     [
@@ -169,30 +216,31 @@ def refresh_news():
     
     if response_text:
         try:
+            # JSONクリーニングとパース
             clean_json = response_text.replace('```json', '').replace('```', '').strip()
             parsed_data = json.loads(clean_json)
             
             if isinstance(parsed_data, list):
-                # 【重要】AIが選んだTop5に、元のリストから画像を紐付ける（必要な分だけ）
+                # 画像の紐付け
                 for art in parsed_data:
                     original = next((x for x in all_entries if x['title'] == art['title']), None)
-                    if original:
-                        art['img'] = original.get('img')
+                    if original: art['img'] = original.get('img')
                 
                 st.session_state.top_articles = parsed_data
                 status.empty()
-                st.success("最新のF1ニュースを更新しました！")
+                st.success("最新ニュースを更新しました！")
                 st.rerun() 
-        except Exception as e:
-            st.error(f"JSON変換失敗: {e}")
-            st.code(response_text)
+        except:
+            st.error("AIのレスポンス形式が不正です。")
     else:
-        st.error("APIの1日あたりの制限に達しました。明日またお試しください。")
+        st.error("APIの制限またはエラーで更新できません。")
 
 # --- 4. 画面表示：Topページ ---
 def show_top_page():
-    st.title("🏁 F1 Insight Engine")
-    st.write("") 
+    # デバッグモード時はタイトルに明記（品質表示）
+    title_suffix = " (🔧Debug)" if DEBUG_MODE else ""
+    st.title(f"🏁 F1 Insight Engine{title_suffix}")
+    
     st.write("") 
 
     if st.button("🔄 最新ニュースを更新・分析"):
@@ -202,62 +250,51 @@ def show_top_page():
 
     if st.session_state.top_articles:
         for idx, art in enumerate(st.session_state.top_articles):
-            # タイヤ設定（URLはご自身でアップロードしたものに差し替えてください）
+            # タイヤ設定
             prio = art.get('priority', 3)
             if prio >= 5:
-                tire_url = "https://raw.githubusercontent.com/narusho555-ops/f1-insight/blob/main/SOFT.png"
                 tire_color, tire_label = "#e10600", "SOFT"
             elif prio >= 3:
-                tire_url = "https://raw.githubusercontent.com/narusho555-ops/f1-insight/blob/main/MEDIUM.png"
                 tire_color, tire_label = "#ffd200", "MEDIUM"
             else:
-                tire_url = "https://raw.githubusercontent.com/narusho555-ops/f1-insight/blob/main/HARD.png"
                 tire_color, tire_label = "#ffffff", "HARD"
 
-            # 1つのコンテナで全体を包む
             with st.container():
                 col_left, col_right = st.columns([1.5, 3.5])
                 
-                # 左側：ビジュアル要素
                 with col_left:
-                    # ファビコンとサムネイル
-                    domain = art['link'].split('/')[2]
-                    st.image(f"https://www.google.com/s2/favicons?sz=64&domain={domain}", width=20)
+                    # ファビコン表示エラー対策（本番はRSSリンクのドメインから取得）
+                    try:
+                        domain = art['link'].split('/')[2]
+                        st.markdown(f'<img src="https://www.google.com/s2/favicons?sz=64&domain={domain}" width="20" style="margin-bottom:5px;">', unsafe_allow_html=True)
+                    except: pass
                     
                     if art.get('img'):
                         st.image(art['img'], use_container_width=True)
                     else:
                         st.image("https://via.placeholder.com/300x160/161920/ffffff?text=F1+NEWS", use_container_width=True)
                     
-                    # タイヤ情報（タイヤ画像を中央に、ラベルを横に）
-                    t_col1, t_col2 = st.columns([1, 2])
-                    with t_col1:
-                        # RawURLがまだなら、一時的に tire_url の代わりに絵文字でもOK
-                        st.image(tire_url, width=40) if "http" in tire_url else st.write("⭕")
-                    with t_col2:
-                        st.markdown(f"<p style='color:{tire_color}; font-weight:bold; margin-top:10px; font-size:1rem;'>{tire_label}</p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='color:{tire_color}; font-weight:bold; margin-top:8px; font-size:1rem; font-family:Orbitron;'>● {tire_label}</p>", unsafe_allow_html=True)
 
-                # 右側：テキストとアクション
                 with col_right:
                     st.markdown(f"### {art['title']}")
                     st.write(art.get('summary_short', ''))
+                    st.write("") 
                     
-                    st.write("") # ボタン前の微調整
-                    
-                    # ボタンを左右同じ大きさで並べる
                     btn_col1, btn_col2 = st.columns(2)
                     with btn_col1:
-                        if st.button(f"🔍 ANALYSIS", key=f"btn_ana_{idx}"):
+                        if st.button(f"🔍 ANALYSIS", key=f"btn_ana_{idx}", use_container_width=True):
                             st.session_state.selected_article = art
                             st.session_state.page = "analysis"
                             st.rerun()
+                            
                     with btn_col2:
-                        # SOURCEボタンもAnalysisボタンと全く同じスタイルに
+                        # SOURCEボタンのスタイル（これは本番・デバッグ共通）
                         st.markdown(f'''
                             <a href="{art["link"]}" target="_blank" style="text-decoration:none;">
                                 <button style="
                                     width:100%; 
-                                    height:42px; 
+                                    height:40px; 
                                     background-color:#262730; 
                                     color:white; 
                                     border:1px solid #464b5d; 
@@ -265,49 +302,39 @@ def show_top_page():
                                     cursor:pointer;
                                     font-family: 'Orbitron', sans-serif;
                                     font-size: 0.8rem;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
                                 ">🔗 SOURCE</button>
                             </a>
                         ''', unsafe_allow_html=True)
- 
+                st.write("")
 
 # --- 5. 画面表示：詳細分析画面 ---
 def show_analysis_page():
     art = st.session_state.selected_article
-    
-    # 【UI改善】上部のBackボタン
-    if st.button("⬅️ Back to List", key="back_top"):
+    if st.button("⬅️ Back to List"):
         st.session_state.page = 'top'
         st.rerun()
 
-    st.title(f"🔍 Deep Analysis")
+    # デバッグモード時は明記
+    st.title(f"🔍 Deep Analysis {'(🔧Debug)' if DEBUG_MODE else ''}")
     st.subheader(art['title'])
     
-    with st.spinner("AIストラテジストが要点を絞って深掘り中..."):
-        # 【スリム化】プロンプトに制約を追加
-        deep_prompt = f"""
-        記事タイトル: {art['title']}
-        以下の構成で、各項目を【簡潔な箇条書き】で日本語で分析してください。
-        全体の文章量は、詳細になりすぎず、スマホで1画面に収まる程度にスリム化すること。
-        
-        1. ニュースの要約（2〜3行で本質を突く）
-        2. 過去の類似案件（関連するエピソードを1つ厳選。次点と3番目のエピソードも参考程度に1言だけ添える）
-        3. 今後起こりそうなこと（過去の歴史・事実を踏まえて、予測される影響を2点）
-        4. 面白トリビア（100文字程度の短い豆知識を数件表示）
-        """
-        analysis_text = ask_gemini(deep_prompt)
+    with st.spinner("AIストラテジストが分析中..."):
+        # プロンプトを送る（ask_gemini内で分岐）
+        analysis_text = ask_gemini(f"Deep Analysis for: {art['title']}")
         if analysis_text:
             st.markdown(analysis_text)
         else:
             st.error("詳細分析に失敗しました。")
 
-    st.divider()
-    
-    # 【UI改善】下部のBackボタン（ボトム）
     if st.button("⬅️ Back to List", key="back_bottom"):
         st.session_state.page = 'top'
         st.rerun()
 
 # --- メイン制御 ---
+# DEBUG_MODEに関わらず、ページ管理ロジックは共通
 if st.session_state.page == 'top':
     show_top_page()
 else:
