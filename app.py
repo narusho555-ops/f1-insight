@@ -15,7 +15,7 @@ DEBUG_MODE = True
 def apply_carbon_design():
     st.markdown("""
         <style>
-        /* 背景設定 */
+        /* 1. 全体背景 */
         .stApp {
             background-color: #0e1117;
             background-image: 
@@ -26,7 +26,7 @@ def apply_carbon_design():
             background-size: 4px 4px;
         }
 
-        /* 記事カード */
+        /* 2. 記事カード */
         [data-testid="stVerticalBlock"] > div:has(div.stColumns) {
             background: rgba(30, 33, 41, 0.9);
             border: 1px solid #343a40;
@@ -37,7 +37,7 @@ def apply_carbon_design():
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
 
-        /* --- 共通ボタンデザイン --- */
+        /* 3. 自作F1ボタン共通デザイン (ANALYSIS & SOURCE) */
         .f1-btn {
             background-color: #262730 !important;
             color: white !important;
@@ -58,41 +58,43 @@ def apply_carbon_design():
             box-sizing: border-box;
         }
 
-        /* ホバー時の挙動（文字色も枠も赤へ） */
+        /* ホバー挙動：枠と文字を赤く */
         .f1-btn:hover {
             border-color: #e10600 !important;
             color: #e10600 !important;
             box-shadow: 0 0 10px rgba(225, 6, 0, 0.3);
         }
 
-        /* Streamlitの標準ボタンを透明にして上に被せるための設定 */
-        .stButton > button {
-            opacity: 0 !important; /* 完全に透明化 */
-            position: absolute !important;
-            z-index: 10 !important;
-            height: 40px !important;
-            width: 100% !important;
-            cursor: pointer !important;
+        /* 4. 透明ボタンの制御 (ここが重要) */
+        /* button-wrapperの中にあるボタンだけを透明にして、自作ボタンの上に重ねる */
+        .button-wrapper {
+            position: relative;
+            height: 40px;
+            width: 100%;
         }
-        
+
         .button-wrapper .stButton > button {
             opacity: 0 !important;
             position: absolute !important;
-            z-index: 10 !important;
-            height: 40px !important;
-            width: 100% !important;
-            cursor: pointer !important;
             top: 0;
             left: 0;
+            width: 100% !important;
+            height: 40px !important;
+            z-index: 10 !important;
+            cursor: pointer !important;
+            border: none !important;
         }
 
-        /* ページ上部の更新ボタンなどは透明にしない（通常表示） */
-        div:not(.button-wrapper) > .stButton > button {
-            opacity: 1 !important;
-            /* 必要であれば更新ボタン用のスタイルをここに追加できます */
+        /* 更新ボタンなど、wrapperの外にある標準ボタンは見せる */
+        div.stButton > button {
+            opacity: 1;
+            font-family: 'Orbitron', sans-serif;
+            background-color: #262730;
+            color: white;
+            border: 1px solid #464b5d;
         }
 
-        /* タイトルのアンダーライン */
+        /* 5. タイトル設定 */
         h1 {
             font-family: 'Orbitron', sans-serif;
             color: #ffffff;
@@ -102,16 +104,16 @@ def apply_carbon_design():
             padding-bottom: 5px;
         }
 
-        /* 画像エリアのサイズを16:9に固定してトリミング */
+        /* 6. 画像エリアの固定（16:9） */
         .stImage > img {
             width: 100% !important;
-            height: 160px !important; /* 高さを固定 */
-            object-fit: cover !important; /* 縦横比を維持して中央で切り抜き */
+            height: 160px !important;
+            object-fit: cover !important;
             border-radius: 4px;
             border: 1px solid #343a40;
         }
 
-        /* 画像がない時の「No Image」ボックス用スタイル */
+        /* 7. No Imageパネル */
         .no-image-box {
             width: 100%;
             height: 160px;
@@ -128,15 +130,11 @@ def apply_carbon_design():
             letter-spacing: 2px;
         }
 
-        /* フォント設定 */
+        /* 8. テキスト設定 */
         p, span, label {
             color: #e0e0e0 !important;
             line-height: 1.5 !important;
         }
-        
-        /* --- その他（背景等はそのまま） --- */
-        .stApp { background-color: #0e1117; }
-        h1 { font-family: 'Orbitron', sans-serif; border-bottom: 3px solid #e10600; }
         </style>
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
