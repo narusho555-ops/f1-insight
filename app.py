@@ -163,31 +163,31 @@ def apply_carbon_design():
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
 
-# --- 修正版：URLパラメータによるナビゲーション制御 ---
-def handle_navigation():
-    params = st.query_params
-
-    if "sel" not in params:
-        return
-
-    try:
-        idx = int(params.get("sel"))
-
-        if not st.session_state.top_articles:
-            return
-
-        if 0 <= idx < len(st.session_state.top_articles):
-            st.session_state.selected_article = st.session_state.top_articles[idx]
-            st.session_state.page = "analysis"
-
-            # URLを即クリア（ここ重要）
-            st.query_params.clear()
-
-            # 1回だけrerun
-            st.rerun()
-
-    except:
-        st.query_params.clear()
+# ANALYSISボタンをかっこよくしたかったが、状態遷移がバグるので、いったんあきらめる
+#def handle_navigation():
+#    params = st.query_params
+#
+#    if "sel" not in params:
+#        return
+#
+#    try:
+#        idx = int(params.get("sel"))
+#
+#        if not st.session_state.top_articles:
+#            return
+#
+#        if 0 <= idx < len(st.session_state.top_articles):
+#            st.session_state.selected_article = st.session_state.top_articles[idx]
+#            st.session_state.page = "analysis"
+#
+#            # URLを即クリア（ここ重要）
+#            st.query_params.clear()
+#
+#            # 1回だけrerun
+#            st.rerun()
+#
+#    except:
+#        st.query_params.clear()
 
 # --- CSS適用 ---
 apply_carbon_design()
@@ -223,7 +223,8 @@ if 'selected_article' not in st.session_state:
 if 'top_articles' not in st.session_state:
     st.session_state.top_articles = []
 
-handle_navigation()
+# ANALYSISボタンをかっこよくしたい意図だったが、バグが激しいのでいったん削除
+# handle_navigation()
 
 # ==========================================
 # 【分岐】初期データの流し込み
@@ -436,15 +437,24 @@ def show_top_page():
                     <div style="flex: 3.5; min-width: 0;">
                         <h3 style="margin-top:0; color:white; font-size:1.2rem;">{art['title']}</h3>
                         <p style="color:#bdc3c7; font-size:0.9rem; line-height:1.5;">{art.get('summary_short', '')}</p>
-                        <div class="action-area" style="margin-top:15px;">
-                            <a href="./?sel={idx}" target="_self" class="f1-btn" style="text-decoration:none;">🔍 ANALYSIS</a>
-                            <a href="{art['link']}" target="_blank" class="f1-btn" style="text-decoration:none;">🔗 SOURCE</a>
-                        </div>
                     </div>
                 </div>
             </div>
             '''
             st.markdown(card_html, unsafe_allow_html=True)
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                if st.button("🔍 ANALYSIS", key=f"analysis_{idx}"):
+                    st.session_state.selected_article = art
+                    st.session_state.page = "analysis"
+                    st.rerun()
+
+            with col2:
+                st.link_button("🔗 SOURCE", art["link"])
+
+            st.write("")  # カード間スペース
 
 # --- 5. 画面表示：詳細分析画面 ---
 def show_analysis_page():
