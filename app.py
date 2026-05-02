@@ -165,44 +165,31 @@ def apply_carbon_design():
 
 # --- 修正版：URLパラメータによるナビゲーション制御 ---
 def handle_navigation():
-    # URLパラメータ ?sel=数字 を取得
     params = st.query_params
     
     if "sel" in params:
         try:
-            # 1. パラメータからインデックスを取得
             idx_str = params.get("sel")
             if idx_str is None: return
             idx = int(idx_str)
             
-            # 2. データの存在チェックを最優先
-            if "top_articles" in st.session_state and 0 <= idx < len(st.session_state.top_articles):
-                # ターゲット記事を特定
-                target_article = st.session_state.top_articles[idx]
-                
-                # 3. セッションステートを更新
-                st.session_state.selected_article = target_article
+            # データがまだ無い場合は、この関数を抜けて、下のデータ読み込み処理に進ませる
+            if "top_articles" not in st.session_state or not st.session_state.top_articles:
+                return 
+
+            # 範囲チェック
+            if 0 <= idx < len(st.session_state.top_articles):
+                st.session_state.selected_article = st.session_state.top_articles[idx]
                 st.session_state.page = "analysis"
                 
-                # 重要：前の記事の分析結果をクリア（キャッシュ事故防止）
                 if 'deep_analysis' in st.session_state:
                     del st.session_state.deep_analysis
 
-                # 4. URLパラメータをクリア
-                st.query_params.clear()
-                
-                # 5. 再描画
-                st.rerun()
-            else:
-                # 記事が見つからない（データ消失など）場合は警告を出してトップへ
-                st.query_params.clear()
-                st.warning("Telemetry data lost. Please refresh news.")
+                st.query_params.clear() # 成功した時だけ消す
                 st.rerun()
                 
         except (ValueError, IndexError, TypeError):
-            # 不正なパラメータの場合は掃除してトップへ
             st.query_params.clear()
-            st.session_state.page = "top"
             st.rerun()
 
 
@@ -265,9 +252,6 @@ if not st.session_state.top_articles:
     else:
         # --- 🚀本番用：最初は空、ボタンを押して取得させる ---
         pass
-
-# アプリのメイン処理の冒頭で必ず実行する
-handle_navigation()
 
 # --- 2. AIへのリクエスト関数 ---
 def ask_gemini(prompt):
@@ -529,6 +513,7 @@ def show_analysis_page():
             del st.session_state.deep_analysis
         st.rerun()
 
+handle_navigation()
 
 if st.session_state.page == 'top':
     show_top_page()
