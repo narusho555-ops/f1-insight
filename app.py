@@ -167,11 +167,11 @@ def apply_carbon_design():
 def handle_navigation():
     params = st.query_params
 
-    # --- ① URLからsel取得（毎回チェック） ---
-    if "sel" in params:
+    # --- ① selは「一度だけ」取り込む ---
+    if "sel" in params and "pending_sel" not in st.session_state:
         st.session_state.pending_sel = params.get("sel")
 
-    # --- ② pendingがなければ何もしない ---
+    # --- ② pendingなければ何もしない ---
     if "pending_sel" not in st.session_state:
         return
 
@@ -185,31 +185,38 @@ def handle_navigation():
 
         idx = int(idx_str)
 
-        # --- ③ データ未ロードなら待機（ここが最重要） ---
-        if "top_articles" not in st.session_state or not st.session_state.top_articles:
-            return  # ← pendingを保持したまま抜ける（ここが肝）
+        # --- ③ データ未ロードなら待機 ---
+        if not st.session_state.get("top_articles"):
+            return
 
-        # --- ④ 範囲チェック ---
+        # --- ④ 遷移処理 ---
         if 0 <= idx < len(st.session_state.top_articles):
             st.session_state.selected_article = st.session_state.top_articles[idx]
             st.session_state.page = "analysis"
 
-            # キャッシュクリア
             if "deep_analysis" in st.session_state:
                 del st.session_state.deep_analysis
 
-        # --- ⑤ 成功・失敗どちらでも後処理 ---
+        # --- ⑤ 後処理（ここ重要） ---
         del st.session_state.pending_sel
-        st.query_params.clear()
+
+        # ★ここを変更（clear → pop推奨）
+        try:
+            st.query_params.pop("sel")
+        except:
+            st.query_params.clear()
 
         st.rerun()
 
     except (ValueError, IndexError, TypeError):
-        # --- 不正パラメータ時 ---
         if "pending_sel" in st.session_state:
             del st.session_state.pending_sel
 
-        st.query_params.clear()
+        try:
+            st.query_params.pop("sel")
+        except:
+            st.query_params.clear()
+
         st.rerun()
 
 # --- CSS適用 ---
