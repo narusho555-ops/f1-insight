@@ -9,7 +9,7 @@ import time
 # ==========================================
 # True : ダミーデータを使用（API消費なし、画面調整用）
 # False: 本番モード（実際のRSS・AI通信を実行）
-DEBUG_MODE = True
+DEBUG_MODE = False
 # ==========================================
 
 def apply_carbon_design():
