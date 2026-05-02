@@ -167,57 +167,27 @@ def apply_carbon_design():
 def handle_navigation():
     params = st.query_params
 
-    # --- ① selは「一度だけ」取り込む ---
-    if "sel" in params and "pending_sel" not in st.session_state:
-        st.session_state.pending_sel = params.get("sel")
-
-    # --- ② pendingなければ何もしない ---
-    if "pending_sel" not in st.session_state:
+    if "sel" not in params:
         return
 
     try:
-        idx_str = st.session_state.pending_sel
+        idx = int(params.get("sel"))
 
-        if idx_str is None:
-            del st.session_state.pending_sel
-            st.query_params.clear()
+        if not st.session_state.top_articles:
             return
 
-        idx = int(idx_str)
-
-        # --- ③ データ未ロードなら待機 ---
-        if not st.session_state.get("top_articles"):
-            return
-
-        # --- ④ 遷移処理 ---
         if 0 <= idx < len(st.session_state.top_articles):
             st.session_state.selected_article = st.session_state.top_articles[idx]
             st.session_state.page = "analysis"
 
-            if "deep_analysis" in st.session_state:
-                del st.session_state.deep_analysis
-
-        # --- ⑤ 後処理（ここ重要） ---
-        del st.session_state.pending_sel
-
-        # ★ここを変更（clear → pop推奨）
-        try:
-            st.query_params.pop("sel")
-        except:
+            # URLを即クリア（ここ重要）
             st.query_params.clear()
 
-        st.rerun()
+            # 1回だけrerun
+            st.rerun()
 
-    except (ValueError, IndexError, TypeError):
-        if "pending_sel" in st.session_state:
-            del st.session_state.pending_sel
-
-        try:
-            st.query_params.pop("sel")
-        except:
-            st.query_params.clear()
-
-        st.rerun()
+    except:
+        st.query_params.clear()
 
 # --- CSS適用 ---
 apply_carbon_design()
@@ -511,9 +481,10 @@ def show_analysis_page():
             【概要】: {art.get('summary_short', '情報なし')}
 
             以下の3点について、パドックの裏側を読むような専門的な洞察を日本語で述べてください。
-            1. チームやドライバーへの実質的な影響
-            2. 次戦以降のパフォーマンスや戦略への波及効果
-            3. 技術的、または政治的な背景の推察
+            1. チームやドライバーへの実質的な影響（最大200文字程度で簡潔に、要点を絞って）
+            2. 次戦以降のパフォーマンスや戦略への波及効果（最大200文字程度で簡潔に、要点を絞って）
+            3. 技術的、または政治的な背景の推察（最大300文字程度で簡潔に、要点を絞って）
+            4. 記事に関連した面白いトリビア（4件程度を箇条書きで）
             """
             
             analysis_text = ask_gemini(analysis_prompt)
