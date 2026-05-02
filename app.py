@@ -422,7 +422,7 @@ def show_top_page():
             img_html = f'<img src="{img_url}" style="width:100%; border-radius:4px; margin-top:10px;">' if img_url else \
                        '<div class="no-image-box" style="margin-top:10px;">📷 NO TELEMETRY DATA</div>'
 
- card_html = f'''
+             card_html = f'''
             <div class="article-card">
                 <div style="display: flex; gap: 20px;">
                     <!-- 左側：ファビコン・画像・タイヤ -->
