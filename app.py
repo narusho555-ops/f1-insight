@@ -312,7 +312,6 @@ def refresh_news():
     seen_titles = set()
     
     # 8つのソースから効率的に収集
-    # 候補が多すぎるとAIが混乱するため、1ソースあたり最大5件程度がバランスが良いです
     for url in RSS_SOURCES:
         try:
             feed = feedparser.parse(url)
@@ -382,7 +381,12 @@ def refresh_news():
                         "priority": int(item['prio'])
                     })
             
+            # --- 【重要】セッション保存前に優先度順（SOFT=5〜）でソートを確定 ---
+            # これにより、Top画面の表示順とURLパラメータのidxが完全に一致します
+            final_articles.sort(key=lambda x: x.get('priority', 3), reverse=True)
+            
             st.session_state.top_articles = final_articles
+            
             status.update(label="🏁 予選セッション（選別）完了。グリッド確定。", state="complete", expanded=False)
             st.success("最新のF1インサイトをロードしました。")
             time.sleep(1)
@@ -395,7 +399,7 @@ def refresh_news():
 
 # --- 4. 画面表示：Topページ ---
 def show_top_page():
-    # デバッグモード時はタイトルに明記（品質表示）
+    # デバッグモード時はタイトルに明記
     title_suffix = " (🔧Debug)" if DEBUG_MODE else ""
     st.title(f"🏁 F1 Insight Engine{title_suffix}")
     
@@ -407,6 +411,8 @@ def show_top_page():
     st.write("")
 
     if st.session_state.top_articles:
+        # 重要: refresh_news側で既にソート済みのため、ここでは直接session_stateを使用します。
+        # これにより、画面上のidxとhandle_navigationが参照するidxが完全に一致します。
         for idx, art in enumerate(st.session_state.top_articles):
             # タイヤ設定の計算
             try:
@@ -425,7 +431,6 @@ def show_top_page():
             img_url = art.get('img', '')
 
             # --- カード全体のHTML構築 ---
-            # 画像がある場合とない場合でHTMLを分岐
             img_html = f'<img src="{img_url}" style="width:100%; border-radius:4px; margin-top:10px;">' if img_url else \
                        '<div class="no-image-box" style="margin-top:10px;">📷 NO TELEMETRY DATA</div>'
 
