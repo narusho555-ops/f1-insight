@@ -526,12 +526,11 @@ def show_analysis_page():
             del st.session_state.deep_analysis
         st.rerun()
 
-# --- メイン制御 ---
-# DEBUG_MODEに関わらず、ページ管理ロジックは共通
-# アプリのメイン処理の冒頭で必ず実行する
-handle_navigation()
 
 if st.session_state.page == 'top':
     show_top_page()
 else:
     show_analysis_page()
+
+# アプリのメイン処理の冒頭で必ず実行する
+handle_navigation()
