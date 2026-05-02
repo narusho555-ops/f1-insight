@@ -9,7 +9,7 @@ import time
 # ==========================================
 # True : ダミーデータを使用（API消費なし、画面調整用）
 # False: 本番モード（実際のRSS・AI通信を実行）
-DEBUG_MODE = False
+DEBUG_MODE = True
 # ==========================================
 
 def apply_carbon_design():
@@ -163,53 +163,49 @@ def apply_carbon_design():
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
     """, unsafe_allow_html=True)
 
-
-
-# --- 修正版：クリック判定ロジック ---
+# --- 修正版：URLパラメータによるナビゲーション制御 ---
 def handle_navigation():
     # URLパラメータ ?sel=数字 を取得
     params = st.query_params
     
     if "sel" in params:
         try:
-            # パラメータからインデックスを取得
-            idx = int(params["sel"])
+            # 1. パラメータからインデックスを取得
+            idx_str = params.get("sel")
+            if idx_str is None: return
+            idx = int(idx_str)
             
-            # リロードループを防ぐために、即座にパラメータをクリア
-            # ※ここでクリアする前にセッション状態を更新するのがコツです
-            st.query_params.clear()
-            
-            # 記事データが存在することを確認
-            if "top_articles" in st.session_state and len(st.session_state.top_articles) > idx:
-                # 1. 選択された記事を保存
-                st.session_state.selected_article = st.session_state.top_articles[idx]
-                # 2. ページフラグを analysis に切り替え
+            # 2. データの存在チェックを最優先
+            if "top_articles" in st.session_state and 0 <= idx < len(st.session_state.top_articles):
+                # ターゲット記事を特定
+                target_article = st.session_state.top_articles[idx]
+                
+                # 3. セッションステートを更新
+                st.session_state.selected_article = target_article
                 st.session_state.page = "analysis"
-                # 3. 強制再描画
-                st.rerun()
-        except (ValueError, IndexError, TypeError):
-            pass
+                
+                # 重要：前の記事の分析結果をクリア（キャッシュ事故防止）
+                if 'deep_analysis' in st.session_state:
+                    del st.session_state.deep_analysis
 
-# 遷移ロジックガードの強化
-def handle_navigation():
-    params = st.query_params
-    if "sel" in params:
-        try:
-            idx = int(params["sel"])
-            # パラメータは真っ先に消す（ループ防止）
-            st.query_params.clear()
-            
-            # セッション内の記事リストが空でないか、インデックスが範囲内か厳格にチェック
-            if st.session_state.get('top_articles') and 0 <= idx < len(st.session_state.top_articles):
-                st.session_state.selected_article = st.session_state.top_articles[idx]
-                st.session_state.page = "analysis"
+                # 4. URLパラメータをクリア
+                st.query_params.clear()
+                
+                # 5. 再描画
                 st.rerun()
             else:
-                # 記事が見つからない場合はメッセージを出してトップに留める
+                # 記事が見つからない（データ消失など）場合は警告を出してトップへ
+                st.query_params.clear()
                 st.warning("Telemetry data lost. Please refresh news.")
-        except Exception:
-            pass
-            
+                st.rerun()
+                
+        except (ValueError, IndexError, TypeError):
+            # 不正なパラメータの場合は掃除してトップへ
+            st.query_params.clear()
+            st.session_state.page = "top"
+            st.rerun()
+
+
 # --- CSS適用 ---
 apply_carbon_design()
 
@@ -305,35 +301,34 @@ def ask_gemini(prompt):
 # --- 3. ロジック：ニュース取得とTop5選別 ---
 def refresh_news():
     if DEBUG_MODE:
-        # --- 🔧デバッグ用：何もしない（API消費を防ぐ） ---
         st.info("🔧 デバッグモード：実際の更新は行いません。")
         time.sleep(1)
         st.rerun()
         return
 
-    # --- 🚀本番用：RSS取得とAI選別の本来のロジック ---
-    status = st.empty()
-    status.info("🔄 ニュースを収集中...")
+    status = st.status("📡 全8ソースからテレメトリを収集解析中...", expanded=True)
     
     all_entries = []
     seen_titles = set()
     
-    # 1. ニュース収集
+    # 8つのソースから効率的に収集
+    # 候補が多すぎるとAIが混乱するため、1ソースあたり最大5件程度がバランスが良いです
     for url in RSS_SOURCES:
         try:
             feed = feedparser.parse(url)
-            for entry in feed.entries[:3]:
-                # 画像抽出ロジック（簡易版）
-                img_url = None
-                if 'media_content' in entry: img_url = entry.media_content[0]['url']
-                elif 'links' in entry:
-                    for link in entry.links:
-                        if 'image' in link.get('type', ''): img_url = link.href
-
-                title_stub = entry.title[:15].lower()
+            for entry in feed.entries[:5]: 
+                title = entry.title.strip()
+                # 類似タイトルの重複排除（15文字一致で既読判定）
+                title_stub = title[:15].lower()
                 if title_stub not in seen_titles:
+                    img_url = None
+                    if 'media_content' in entry: img_url = entry.media_content[0]['url']
+                    elif 'links' in entry:
+                        for link in entry.links:
+                            if 'image' in link.get('type', ''): img_url = link.href
+
                     all_entries.append({
-                        "title": entry.title, 
+                        "title": title, 
                         "link": entry.link,
                         "img": img_url
                     })
@@ -341,52 +336,62 @@ def refresh_news():
         except: pass
 
     if not all_entries:
-        status.error("記事を取得できませんでした。")
+        status.update(label="❌ 記事を取得できませんでした。ソースのURLを確認してください。", state="error")
         return
 
-    status.write(f"✅ 候補{len(all_entries)}件。AIによるTop5選別中...")
+    # 429エラー回避のため、AIに送るリストを最大20件程度に絞る（鮮度優先）
+    processing_entries = all_entries[:20]
+    status.write(f"✅ {len(all_entries)}件中、最新{len(processing_entries)}件をAI選別ラインへ投入...")
 
-    # 2. AIへのプロンプト
+    # IDとタイトルのみの軽量パケット作成
+    lite_input = [{"id": i, "title": e['title']} for i, e in enumerate(processing_entries)]
+    
     prompt = f"""
-    Return ONLY a JSON array. Do not include any conversational text or explanations.
-    F1ニュース候補から重要なTop5を厳選し、以下の形式で返せ。
+    Return ONLY a JSON array. 
+    F1ニュースから戦略的に重要な5つを厳選し、以下のJSON形式で返せ。
     [
-      {{"title": "...", "link": "...", "summary_short": "50文字要約", "priority": 1-5}}
+      {{"id": 0, "summary": "50文字以内の日本語要約", "prio": 1-5}}
     ]
-    リスト: {json.dumps([{"title": e['title'], "link": e['link']} for e in all_entries])}
+    List: {json.dumps(lite_input)}
     """
     
+    # 送信前に1.5秒のピットストップ（429回避）
+    time.sleep(1.5)
     response_text = ask_gemini(prompt)
     
     if response_text:
-        # refresh_news() 内の tryブロックを以下のように修正
         try:
-            # 1. ```json と ``` を削除し、さらに前後の空白を消す
+            # JSON抽出
             clean_json = response_text.strip()
             if "```" in clean_json:
                 clean_json = clean_json.split("```")[1]
-                if clean_json.startswith("json"):
-                    clean_json = clean_json[4:]
+                if clean_json.startswith("json"): clean_json = clean_json[4:]
             
-            parsed_data = json.loads(clean_json.strip())
+            selected_data = json.loads(clean_json.strip())
             
-            if isinstance(parsed_data, list):
-                # 画像の紐付け処理
-                for art in parsed_data:
-                    original = next((x for x in all_entries if x['title'] == art['title']), None)
-                    if original: 
-                        art['img'] = original.get('img')
-                    # priorityが文字列で返ってきた場合の保険
-                    art['priority'] = int(art.get('priority', 3))
-                
-                st.session_state.top_articles = parsed_data
-                status.empty()
-                st.success("最新ニュースを更新しました！")
-                st.rerun()
-        except:
-            st.error("AIのレスポンス形式が不正です。")
+            final_articles = []
+            for item in selected_data:
+                idx = item['id']
+                if 0 <= idx < len(processing_entries):
+                    orig = processing_entries[idx]
+                    final_articles.append({
+                        "title": orig['title'],
+                        "link": orig['link'],
+                        "img": orig.get('img'),
+                        "summary_short": item['summary'],
+                        "priority": int(item['prio'])
+                    })
+            
+            st.session_state.top_articles = final_articles
+            status.update(label="🏁 予選セッション（選別）完了。グリッド確定。", state="complete", expanded=False)
+            st.success("最新のF1インサイトをロードしました。")
+            time.sleep(1)
+            st.rerun()
+            
+        except Exception as e:
+            status.update(label=f"❌ 解析エラー: {str(e)}", state="error")
     else:
-        st.error("APIの制限またはエラーで更新できません。")
+        status.update(label="❌ API制限により燃料切れ（429）。少し時間を置いてください。", state="error")
 
 # --- 4. 画面表示：Topページ ---
 def show_top_page():
@@ -451,25 +456,69 @@ def show_top_page():
 
 # --- 5. 画面表示：詳細分析画面 ---
 def show_analysis_page():
-    art = st.session_state.selected_article
-    if st.button("⬅️ Back to List"):
+    # 選択された記事がない場合はトップに戻る
+    if 'selected_article' not in st.session_state or not st.session_state.selected_article:
         st.session_state.page = 'top'
         st.rerun()
+        return
 
-    # デバッグモード時は明記
-    st.title(f"🔍 Deep Analysis {'(🔧Debug)' if DEBUG_MODE else ''}")
+    art = st.session_state.selected_article
+    
+    # 戻るボタン（上部）
+    if st.button("⬅️ Back to List", key="back_top"):
+        st.session_state.page = 'top'
+        # 詳細分析のキャッシュをクリア（別の記事の分析に備える）
+        if 'deep_analysis' in st.session_state:
+            del st.session_state.deep_analysis
+        st.rerun()
+
+    # タイトル表示
+    title_suffix = " (🔧Debug)" if DEBUG_MODE else ""
+    st.title(f"🔬 Deep Strategy Analysis{title_suffix}")
     st.subheader(art['title'])
     
-    with st.spinner("AIストラテジストが分析中..."):
-        # プロンプトを送る（ask_gemini内で分岐）
-        analysis_text = ask_gemini(f"Deep Analysis for: {art['title']}")
-        if analysis_text:
-            st.markdown(analysis_text)
-        else:
-            st.error("詳細分析に失敗しました。")
+    # --- AI分析の実行（キャッシュ管理） ---
+    # まだ分析結果がない、または別の記事を分析しようとしている場合のみAPIを叩く
+    if "deep_analysis" not in st.session_state or st.session_state.get('analyzed_title') != art['title']:
+        with st.spinner("🏎️ AIストラテジストがデータを解析中..."):
+            # プロンプトを具体化し、出力を安定させる
+            analysis_prompt = f"""
+            以下のF1ニュースを、F1専門家の視点で鋭く分析・解説してください。
+            
+            【タイトル】: {art['title']}
+            【概要】: {art.get('summary_short', '情報なし')}
 
+            以下の3点について、パドックの裏側を読むような専門的な洞察を日本語で述べてください。
+            1. チームやドライバーへの実質的な影響
+            2. 次戦以降のパフォーマンスや戦略への波及効果
+            3. 技術的、または政治的な背景の推察
+            """
+            
+            analysis_text = ask_gemini(analysis_prompt)
+            
+            if analysis_text:
+                # 結果をセッションに保存（キャッシュ）
+                st.session_state.deep_analysis = analysis_text
+                st.session_state.analyzed_title = art['title']
+            else:
+                st.error("詳細分析に失敗しました。API制限の可能性があります。")
+                return
+
+    # --- 分析結果の表示 ---
+    if st.session_state.get('deep_analysis'):
+        # F1らしいカーボン調の枠、または st.info で表示
+        st.info(st.session_state.deep_analysis)
+        
+        # 補足：ソースへのリンク
+        st.markdown(f"🔗 [Original Source]({art['link']})")
+    
+    st.write("---")
+    
+    # 戻るボタン（下部）
     if st.button("⬅️ Back to List", key="back_bottom"):
         st.session_state.page = 'top'
+        if 'deep_analysis' in st.session_state:
+            del st.session_state.deep_analysis
         st.rerun()
 
 # --- メイン制御 ---
