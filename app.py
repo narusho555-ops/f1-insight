@@ -246,6 +246,8 @@ if 'selected_article' not in st.session_state:
 if 'top_articles' not in st.session_state:
     st.session_state.top_articles = []
 
+handle_navigation()
+
 # ==========================================
 # 【分岐】初期データの流し込み
 # ==========================================
@@ -533,8 +535,6 @@ def show_analysis_page():
         if 'deep_analysis' in st.session_state:
             del st.session_state.deep_analysis
         st.rerun()
-
-handle_navigation()
 
 if st.session_state.page == 'top':
     show_top_page()
