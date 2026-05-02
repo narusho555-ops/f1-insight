@@ -422,26 +422,26 @@ def show_top_page():
             img_html = f'<img src="{img_url}" style="width:100%; border-radius:4px; margin-top:10px;">' if img_url else \
                        '<div class="no-image-box" style="margin-top:10px;">📷 NO TELEMETRY DATA</div>'
 
-             card_html = f'''
-            <div class="article-card">
-                <div style="display: flex; gap: 20px;">
-                    <!-- 左側：ファビコン・画像・タイヤ -->
-                    <div style="flex: 1.5; min-width: 0;">
-                        <img src="https://www.google.com/s2/favicons?sz=64&domain={domain}" class="favicon-img">
-                        {img_html}
-                        <p style="color:{tire_color}; font-weight:bold; margin-top:12px; font-size:0.85rem; font-family:Orbitron;">
-                            {tire_icon} {tire_label}
-                        </p>
-                    </div>
-                    <!-- 右側：テキスト・ボタン -->
-                    <div style="flex: 3.5; min-width: 0;">
-                        <h3 style="margin-top:0; color:white; font-size:1.2rem;">{art['title']}</h3>
-                        <p style="color:#bdc3c7; font-size:0.9rem; line-height:1.5;">{art.get('summary_short', '')}</p>
+            card_html = f'''
+                <div class="article-card">
+                    <div style="display: flex; gap: 20px;">
+                        <!-- 左側：ファビコン・画像・タイヤ -->
+                        <div style="flex: 1.5; min-width: 0;">
+                            <img src="https://www.google.com/s2/favicons?sz=64&domain={domain}" class="favicon-img">
+                            {img_html}
+                            <p style="color:{tire_color}; font-weight:bold; margin-top:12px; font-size:0.85rem; font-family:Orbitron;">
+                                {tire_icon} {tire_label}
+                            </p>
+                        </div>
+                        <!-- 右側：テキスト・ボタン -->
+                        <div style="flex: 3.5; min-width: 0;">
+                            <h3 style="margin-top:0; color:white; font-size:1.2rem;">{art['title']}</h3>
+                            <p style="color:#bdc3c7; font-size:0.9rem; line-height:1.5;">{art.get('summary_short', '')}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-            '''
-            st.markdown(card_html, unsafe_allow_html=True)
+                '''
+                st.markdown(card_html, unsafe_allow_html=True)
 
             col1, col2 = st.columns(2)
 
