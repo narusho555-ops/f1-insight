@@ -441,7 +441,7 @@ def show_top_page():
                     </div>
                 </div>
                 '''
-                st.markdown(card_html, unsafe_allow_html=True)
+            st.markdown(card_html, unsafe_allow_html=True)
 
             col1, col2 = st.columns(2)
 
