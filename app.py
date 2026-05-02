@@ -423,7 +423,7 @@ def show_top_page():
                        '<div class="no-image-box" style="margin-top:10px;">📷 NO TELEMETRY DATA</div>'
 
             card_html = f'''
-            <div class="article-card">
+            <div class="article-card" style="margin-bottom:0; border-bottom-left-radius:0; border-bottom-right-radius:0;">
                 <div style="display: flex; gap: 20px;">
                     <!-- 左側：ファビコン・画像・タイヤ -->
                     <div style="flex: 1.5; min-width: 0;">
@@ -441,7 +441,18 @@ def show_top_page():
                 </div>
             </div>
             '''
-            st.markdown(card_html, unsafe_allow_html=True)
+            st.markdown("""
+            <div style="
+                background: linear-gradient(135deg, rgba(30,33,41,0.95), rgba(15,17,22,0.98));
+                border-left: 6px solid #e10600;
+                border-right: 1px solid #343a40;
+                border-bottom: 1px solid #343a40;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+                padding: 15px;
+                margin-top: -10px;
+            ">
+            """, unsafe_allow_html=True)
 
             col1, col2 = st.columns(2)
 
