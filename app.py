@@ -166,32 +166,51 @@ def apply_carbon_design():
 # --- 修正版：URLパラメータによるナビゲーション制御 ---
 def handle_navigation():
     params = st.query_params
-    
+
+    # --- ① URLからsel取得（毎回チェック） ---
     if "sel" in params:
-        try:
-            idx_str = params.get("sel")
-            if idx_str is None: return
-            idx = int(idx_str)
-            
-            # データがまだ無い場合は、この関数を抜けて、下のデータ読み込み処理に進ませる
-            if "top_articles" not in st.session_state or not st.session_state.top_articles:
-                return 
+        st.session_state.pending_sel = params.get("sel")
 
-            # 範囲チェック
-            if 0 <= idx < len(st.session_state.top_articles):
-                st.session_state.selected_article = st.session_state.top_articles[idx]
-                st.session_state.page = "analysis"
-                
-                if 'deep_analysis' in st.session_state:
-                    del st.session_state.deep_analysis
+    # --- ② pendingがなければ何もしない ---
+    if "pending_sel" not in st.session_state:
+        return
 
-                st.query_params.clear() # 成功した時だけ消す
-                st.rerun()
-                
-        except (ValueError, IndexError, TypeError):
+    try:
+        idx_str = st.session_state.pending_sel
+
+        if idx_str is None:
+            del st.session_state.pending_sel
             st.query_params.clear()
-            st.rerun()
+            return
 
+        idx = int(idx_str)
+
+        # --- ③ データ未ロードなら待機（ここが最重要） ---
+        if "top_articles" not in st.session_state or not st.session_state.top_articles:
+            return  # ← pendingを保持したまま抜ける（ここが肝）
+
+        # --- ④ 範囲チェック ---
+        if 0 <= idx < len(st.session_state.top_articles):
+            st.session_state.selected_article = st.session_state.top_articles[idx]
+            st.session_state.page = "analysis"
+
+            # キャッシュクリア
+            if "deep_analysis" in st.session_state:
+                del st.session_state.deep_analysis
+
+        # --- ⑤ 成功・失敗どちらでも後処理 ---
+        del st.session_state.pending_sel
+        st.query_params.clear()
+
+        st.rerun()
+
+    except (ValueError, IndexError, TypeError):
+        # --- 不正パラメータ時 ---
+        if "pending_sel" in st.session_state:
+            del st.session_state.pending_sel
+
+        st.query_params.clear()
+        st.rerun()
 
 # --- CSS適用 ---
 apply_carbon_design()
@@ -373,6 +392,8 @@ def refresh_news():
             final_articles.sort(key=lambda x: x.get('priority', 3), reverse=True)
             
             st.session_state.top_articles = final_articles
+            st.session_state.selected_article = None   # ← 追加①
+            st.session_state.page = "top"              # ← 追加②
             
             status.update(label="🏁 予選セッション（選別）完了。グリッド確定。", state="complete", expanded=False)
             st.success("最新のF1インサイトをロードしました。")
