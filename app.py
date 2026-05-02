@@ -266,6 +266,9 @@ if not st.session_state.top_articles:
         # --- 🚀本番用：最初は空、ボタンを押して取得させる ---
         pass
 
+# アプリのメイン処理の冒頭で必ず実行する
+handle_navigation()
+
 # --- 2. AIへのリクエスト関数 ---
 def ask_gemini(prompt):
     if DEBUG_MODE:
@@ -531,6 +534,3 @@ if st.session_state.page == 'top':
     show_top_page()
 else:
     show_analysis_page()
-
-# アプリのメイン処理の冒頭で必ず実行する
-handle_navigation()
